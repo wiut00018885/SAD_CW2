@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Safia Branch Management Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&family=Aleo:wght@700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Design system, taken from safiabakery.uz: sand-gold hero that fades lighter to the right, white rounded surfaces
+   on a warm off-white page, borderless grey chips, pill controls, one friendly display face for hero lines only.
+   Spacing scale 4/8/12/16/24/32. Radius scale 14 (fields), 20 (chips), 28 (surfaces), 999 (controls). */
+:root{
+  color-scheme:light;
+  --bg:#f7f6f4; --surface:#ffffff; --sunk:#f4f2ee; --line:#ebe7df; --ink:#16130e; --muted:#6f695f;
+  --accent:#d0b57a; --accent-2:#e4d3aa; --accent-ink:#16130e; --accent-soft:#f6efdd; --accent-text:#73570f; --chart:#d0b57a;
+  --good:#1e7a3c; --good-soft:#e3f2e7; --warn:#8a5000; --warn-soft:#fbedd0; --bad:#b3261e; --bad-soft:#fbe4e2;
+  --font:"Jost","Avenir Next","Century Gothic",system-ui,sans-serif; --display:"Aleo",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:28px; --gold:linear-gradient(95deg,var(--accent) 45%,var(--accent-2));
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+#app{min-height:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--font);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font-size:28px;font-weight:600;letter-spacing:-.01em}
+h2{font-size:18px;font-weight:600}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.mono{font-family:var(--mono);white-space:nowrap;font-size:.92em}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+
+.shell{display:grid;grid-template-columns:264px minmax(0,1fr);gap:16px;padding:16px;min-height:100vh}
+.side{background:var(--surface);border-radius:var(--r)}
+.side-in{position:sticky;top:16px;display:flex;flex-direction:column;gap:4px;padding:24px 16px;max-height:calc(100vh - 28px);overflow:auto}
+.brand{display:flex;align-items:center;gap:12px;padding:0 8px}
+.brand i{flex:none;width:44px;height:44px;border-radius:50%;background:var(--gold);color:#fff;font:700 24px/1 var(--display);display:flex;align-items:center;justify-content:center;font-style:normal}
+.brand b{display:block;letter-spacing:.22em;font-size:18px;font-weight:700;line-height:1.15}
+.brand span{display:block;font-size:13px;color:var(--muted);line-height:1.2}
+.navlabel{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:20px 16px 6px}
+.navi{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:999px;border:0;background:transparent;color:var(--ink);text-align:left;cursor:pointer;font-weight:500;width:100%}
+.navi svg{flex:none;width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.navi:hover{background:var(--sunk)}
+.navi.on{background:var(--gold);color:var(--accent-ink);font-weight:600}
+.navi:disabled{opacity:.4;cursor:not-allowed}
+.navi .badge{margin-left:auto;background:var(--ink);color:#fff;border-radius:999px;font-size:12px;font-weight:600;padding:1px 8px}
+.navi.on .badge{background:#fff;color:var(--ink)}
+.who{margin-top:16px;padding:14px;background:var(--sunk);border-radius:20px;display:flex;flex-direction:column;gap:10px;font-size:14px}
+.who b{font-size:16px}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 12px 10px 24px;min-height:64px;background:var(--surface);border-radius:999px}
+.top .sp{flex:1}
+.crumb{font-size:14px;color:var(--muted)}
+.bchip{display:inline-flex;align-items:center;gap:8px;background:var(--sunk);border-radius:999px;padding:8px 16px 8px 12px;font-size:15px;white-space:nowrap}
+.bchip svg,.pick svg{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.pick{display:flex;align-items:center;gap:10px;background:var(--sunk);border-radius:14px;padding:0 14px}
+.pick select{background:transparent!important;border:0;padding-left:0;font-weight:500}
+.main{display:flex;flex-direction:column;gap:16px;min-width:0}
+.wrap{max-width:1240px;width:100%;margin:0 auto;padding:6px 4px 50px;display:flex;flex-direction:column;gap:16px}
+.head{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:8px 16px;padding:0 6px}
+.hero{position:relative;overflow:hidden;background:var(--gold);border-radius:var(--r);padding:36px 32px 32px;display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:16px}
+.hero::after{content:"";position:absolute;right:-70px;top:-110px;width:330px;height:330px;border-radius:50%;background:rgba(255,255,255,.22)}
+.hero>*{position:relative;z-index:1}
+.hero h1{font:700 40px/1.08 var(--display);letter-spacing:-.01em;color:#fff;text-shadow:0 1px 0 rgba(115,87,15,.35)}
+.hero p{margin:8px 0 0;max-width:48ch;color:var(--ink);font-size:17px}
+.hero .btn{border-color:transparent;background:#fff}
+.hero .btn.primary{background:var(--ink);color:#fff}
+.auth{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:100vh}
+.auth-hero{position:relative;overflow:hidden;background:var(--gold);color:var(--ink);padding:48px 56px;display:flex;flex-direction:column;gap:24px;border-radius:0 var(--r) var(--r) 0}
+.auth-hero svg.deco{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.auth-hero>*{position:relative}
+.auth-hero .brand{padding:0}
+.auth-hero .brand i{background:#fff;color:var(--accent-text)}
+.auth-hero .brand span{color:var(--ink);opacity:.75}
+.auth-hero h1{font:700 clamp(36px,4.4vw,60px)/1.06 var(--display);letter-spacing:-.01em;margin-top:auto;color:#fff;text-shadow:0 1px 0 rgba(115,87,15,.35)}
+.auth-hero h1 em{font-style:normal;color:var(--ink);text-shadow:none}
+.auth-hero p{margin:0;max-width:46ch;font-size:18px;line-height:1.5}
+.feats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:auto}
+.feat{background:rgba(255,255,255,.62);border-radius:20px;padding:18px 10px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;font-size:15px;font-weight:500;line-height:1.25}
+.feat svg{width:26px;height:26px;fill:none;stroke:var(--ink);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.auth-form{display:flex;align-items:center;justify-content:center;padding:28px 20px;background:var(--bg)}
+.auth-card{background:var(--surface);border-radius:var(--r);padding:32px;width:100%;max-width:500px;display:flex;flex-direction:column;gap:16px;box-shadow:0 24px 60px rgba(115,87,15,.10)}
+.auth-card input{background:var(--sunk);border-color:transparent}
+.auth-card .title{display:flex;align-items:center;gap:12px}
+.auth-card .title i{width:44px;height:44px;border-radius:14px;background:var(--gold);display:flex;align-items:center;justify-content:center}
+.auth-card .title svg{width:20px;height:20px;fill:none;stroke:var(--ink);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:14px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.qcard{display:flex;align-items:center;gap:12px;padding:12px 16px 12px 12px;border:1px solid transparent;border-radius:20px;background:var(--sunk);cursor:pointer;text-align:left}
+.qcard:hover{border-color:var(--accent)}
+.qcard .av{flex:none;width:44px;height:44px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font:700 19px/1 var(--display)}
+.qcard .arr{margin-left:auto;color:var(--muted)}
+.qcard b{display:block;line-height:1.2}
+.panelhead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--good);margin-right:7px}
+.dot.off{background:var(--bad)}
+
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:9px 18px;cursor:pointer;font-weight:500;min-height:42px}
+.btn:hover{border-color:var(--accent-text)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.primary:hover{background:var(--accent-2)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.big{padding:13px 26px;font-size:17px;min-height:52px}
+.btn.sm{padding:5px 13px;min-height:34px;font-size:14px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.card .btn,.top .btn,.side .btn,.dialog .btn,.drawer .btn,.auth-card .btn{background:var(--sunk);border-color:transparent}
+.card .btn:hover,.top .btn:hover,.side .btn:hover,.dialog .btn:hover,.drawer .btn:hover{border-color:var(--accent)}
+.card .btn.primary,.dialog .btn.primary,.auth-card .btn.primary,.top .btn.primary{background:var(--accent);border-color:var(--accent)}
+.card .btn.danger,.dialog .btn.danger{background:var(--bad-soft);border-color:transparent}
+.btn.on,.card .btn.on{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+:focus-visible{outline:3px solid var(--accent-text);outline-offset:2px}
+
+.card{background:var(--surface);border:1px solid transparent;border-radius:var(--r);padding:24px}
+.grid{display:grid;gap:16px}
+.cols2{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
+.cols2e{grid-template-columns:repeat(2,minmax(0,1fr))}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.row.end{justify-content:flex-end}
+.row.between{justify-content:space-between}
+.stack{display:flex;flex-direction:column;gap:12px}
+
+label.f{display:flex;flex-direction:column;gap:5px;font-size:14px;font-weight:600}
+input[type=text],input[type=number],input[type=password],input[type=date],input[type=time],select,textarea{
+  border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:9px 13px;min-height:44px;width:100%;font-weight:400}
+.card input[type=text],.card input[type=number],.card input[type=password],.card input[type=date],.card input[type=time],.card select,.card textarea,.dialog input{background:var(--sunk);border-color:transparent}
+textarea{min-height:76px;resize:vertical}
+.check{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:16px;background:var(--sunk);cursor:pointer}
+.check input{width:19px;height:19px;margin-top:2px;accent-color:var(--accent-text)}
+
+.pill{display:inline-block;padding:3px 11px;border-radius:999px;font-size:13px;font-weight:600;background:var(--sunk);white-space:nowrap}
+.pill.good,.pill.warn,.pill.bad{padding-left:9px}
+.pill.good::before,.pill.warn::before,.pill.bad::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;margin-right:6px;vertical-align:1px}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.acc{background:var(--accent-soft);color:var(--accent-text)}
+.note{border-radius:16px;padding:12px 16px;background:var(--surface)}
+.card .note{background:var(--sunk)}
+.note.bad,.card .note.bad{background:var(--bad-soft);color:var(--bad)}
+.note.warn,.card .note.warn{background:var(--warn-soft);color:var(--warn)}
+.note.good,.card .note.good{background:var(--good-soft);color:var(--good)}
+.demo{border:1px dashed var(--muted);border-radius:16px;padding:9px 14px;font-size:14px;color:var(--muted);background:transparent}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center}
+.toolbar .search{flex:1 1 240px;max-width:440px}
+.search{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 6px 0 14px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+.card .search,.drawer .search,.auth-card .search{background:var(--sunk);border-color:transparent}
+.search:focus-within{border-color:var(--accent-text)}
+.search svg{flex:none;width:18px;height:18px;fill:none;stroke:var(--muted);stroke-width:1.8;stroke-linecap:round}
+.search input{flex:1;min-width:0;border:0!important;background:transparent!important;padding:0!important;min-height:42px;outline:none}
+.search .clr{flex:none;width:30px;height:30px;border-radius:50%;border:0;background:transparent;cursor:pointer;font-size:18px;line-height:1;color:var(--muted)}
+.search .clr:hover{background:var(--line)}
+.chips{gap:6px}
+.cnt{display:inline-block;min-width:20px;padding:0 6px;margin-left:4px;border-radius:999px;background:rgba(22,19,14,.08);font-size:12px;font-weight:600;text-align:center}
+.pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;padding-top:4px}
+.pager .btn.sm{min-width:34px;padding:5px 10px}
+select.inline{width:auto;min-height:36px;padding:5px 12px;border-radius:999px;font-size:14px}
+.blist{display:flex;flex-direction:column;gap:6px}
+.bopt{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:16px;border:1px solid transparent;background:var(--sunk);cursor:pointer;text-align:left}
+.bopt:hover{border-color:var(--accent)}
+.bopt.on{background:var(--accent-soft);border-color:var(--accent)}
+.bopt b{display:block;line-height:1.2}
+.bopt .pill{margin-left:auto}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:10px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td,tr:last-child th{border-bottom:0}
+th{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500}
+td.r,th.r{text-align:right}
+td input,td select{min-height:38px;padding:5px 10px}
+
+.products{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.prod{display:flex;align-items:center;gap:14px;padding:12px 16px 12px 12px;border:1px solid transparent;border-radius:var(--r);background:var(--surface);cursor:pointer;text-align:left;min-height:88px}
+.prod:hover{border-color:var(--accent)}
+.prod:disabled{opacity:.5;cursor:not-allowed}
+.prod .info{display:flex;flex-direction:column;gap:2px;min-width:0}
+.prod b{font-weight:600;line-height:1.2}
+.swatch{flex:none;width:62px;height:62px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font:700 20px/1 var(--display);color:#fff}
+.total{font-size:24px;font-weight:600}
+.kpi{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.kpi .card{padding:20px 24px}
+.kpi .card b{display:block;font-size:24px;font-weight:600;margin-top:4px;letter-spacing:-.01em}
+.tight td{padding:8px 4px}
+.steps{display:flex;flex-wrap:wrap;gap:6px;font-size:14px;color:var(--muted)}
+.steps .cur{color:var(--ink);font-weight:600;background:var(--gold);border-radius:999px;padding:1px 12px}
+.track{display:flex;flex-wrap:wrap;gap:6px}
+.track span{padding:7px 14px;border-radius:999px;font-size:13px;font-weight:600;color:var(--muted);background:var(--sunk)}
+.track span.done{background:var(--gold);color:var(--accent-ink)}
+.receipt{font-family:var(--mono);font-size:13px;white-space:pre-wrap;background:var(--surface);border-radius:var(--r);padding:20px}
+.login{max-width:400px;margin:5vh auto 0}
+
+.overlay{position:fixed;inset:0;background:rgba(17,17,17,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
+.dialog{background:var(--surface);border-radius:28px;border-top:8px solid var(--bad);padding:26px;max-width:500px;width:100%;display:flex;flex-direction:column;gap:14px}
+.dialog.neutral{border-top-color:var(--accent)}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 22px;border-radius:999px;z-index:30;max-width:92vw;font-weight:500}
+.drawer{position:fixed;top:14px;right:14px;bottom:14px;width:min(420px,calc(100vw - 28px));background:var(--surface);border-radius:28px;box-shadow:0 10px 40px rgba(17,17,17,.18);z-index:15;padding:22px;overflow:auto;display:flex;flex-direction:column;gap:10px}
+.msg{background:var(--sunk);border-radius:16px;padding:10px 14px;font-size:14px}
+@media (max-width:900px){
+  .cols2,.cols2e{grid-template-columns:minmax(0,1fr)}
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .side-in{position:static;flex-direction:row;align-items:center;overflow-x:auto;max-height:none;padding:10px 12px}
+  .navlabel,.who .hide-s,.brand::after{display:none}
+  .navi{width:auto;white-space:nowrap}
+  .who{margin:0 0 0 8px;flex-direction:row;align-items:center;white-space:nowrap;padding:6px 12px}
+  .top{border-radius:22px}
+  .hero h1{font-size:28px}
+  .auth{grid-template-columns:minmax(0,1fr)}
+  .auth-hero{padding:32px 24px;border-radius:0 0 var(--r) var(--r)}
+  .feats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .quick{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:no-preference){.btn,.navi,.prod{transition:border-color .12s,background-color .12s}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+"use strict";
+/* =====================================================================================
+   Safia Branch Management System - high-fidelity prototype
+   Class names, attributes and operations follow the UML class diagrams in the report.
+   Packages: domain (staff, inventory, pos, orders, delivery, reporting), integration, presentation.
+   Data is held in memory and is reset when the page is reloaded.
+   ===================================================================================== */
+
+/* ---------- helpers ---------- */
+const money = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " UZS";
+const pad = n => String(n).padStart(2, "0");
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const fromIso = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const fmtDate = d => `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+const fmtTime = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const today = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let seq = { receipt: 4511, order: 186, pay: 9000, rr: 930 };
+
+/* =============================== domain: inventory =============================== */
+class Product {
+  constructor(productId, name, category, barcode, unitPrice, keepsOvernight, avgDailySales) {
+    this.productId = productId; this.name = name; this.category = category; this.barcode = barcode;
+    this.unitPrice = unitPrice; this.keepsOvernight = keepsOvernight; this.avgDailySales = avgDailySales;
+  }
+  getPrice() { return this.unitPrice; }
+  matchesBarcode(code) { return this.barcode === String(code).trim(); }
+}
+class StockItem {
+  constructor(product, quantity, lowStockThreshold) {
+    this.product = product; this.quantity = quantity; this.lowStockThreshold = lowStockThreshold;
+    this.lastCountedAt = null; this.soldOutAt = null;
+  }
+  deduct(qty) {
+    if (qty > this.quantity) throw new Error(`Only ${this.quantity} of ${this.product.name} left`);
+    this.quantity -= qty;
+    if (this.quantity === 0) this.soldOutAt = new Date();
+  }
+  receive(qty) { this.quantity += qty; if (this.quantity > 0) this.soldOutAt = null; }
+  isLow() { return this.quantity > 0 && this.quantity <= this.lowStockThreshold; }
+  isSoldOut() { return this.quantity === 0; }
+}
+
+/* =============================== domain: staff =============================== */
+class Branch {
+  constructor(branchId, name, address, qrPaymentEnabled, writeOffLimit, opensAt = 0, closesAt = 24) {
+    this.branchId = branchId; this.name = name; this.address = address; this.opensAt = opensAt; this.closesAt = closesAt;
+    this.qrPaymentEnabled = qrPaymentEnabled; this.writeOffLimit = writeOffLimit;
+    this.stock = [];      // composition: StockItem belongs to one branch
+    this.employees = [];  // aggregation: Employee can exist without the branch
+  }
+  stockFor(product) { return this.stock.find(s => s.product === product); }
+  getStockLevel(product) { const s = this.stockFor(product); return s ? s.quantity : 0; }
+  getLowStockItems() { return this.stock.filter(s => s.isLow() || s.isSoldOut()); }
+  isAlwaysOpen() { return this.opensAt === 0 && this.closesAt === 24; }
+  isOpen(at = new Date()) { const h = at.getHours(); return this.isAlwaysOpen() || (h >= this.opensAt && h < this.closesAt); }
+  hoursLabel() { return this.isAlwaysOpen() ? "Open 24/7" : `${pad(this.opensAt)}:00–${pad(this.closesAt)}:00`; }
+}
+class Employee {
+  constructor(employeeId, fullName, pin) {
+    if (new.target === Employee) throw new Error("Employee is abstract");
+    this.employeeId = employeeId; this.fullName = fullName; this._pin = pin;
+  }
+  login(pin) { return String(pin) === this._pin; }
+  getRole() { throw new Error("abstract"); }
+  canApproveWriteOff() { return false; }
+}
+class SalesAssistant extends Employee {
+  getRole() { return "Sales assistant"; }
+  startSale(branch) { return new Sale(this, branch); }
+}
+class BranchManager extends Employee {
+  getRole() { return "Branch manager"; }
+  canApproveWriteOff() { return true; }
+  approveWriteOff(pin) { return this.login(pin); }
+  startSale(branch) { return new Sale(this, branch); }
+}
+
+/* =============================== domain: pos =============================== */
+class Payment {
+  constructor(amount) {
+    if (new.target === Payment) throw new Error("Payment is abstract");
+    this.paymentId = ++seq.pay; this.amount = amount; this.paidAt = null; this.approved = false;
+  }
+  process() { throw new Error("abstract"); }
+  isApproved() { return this.approved; }
+  get method() { return "Payment"; }
+}
+class CashPayment extends Payment {
+  constructor(amount, cashReceived) { super(amount); this.cashReceived = cashReceived; }
+  process() { this.approved = this.cashReceived >= this.amount; if (this.approved) this.paidAt = new Date(); return this.approved; }
+  getChange() { return Math.max(0, this.cashReceived - this.amount); }
+  get method() { return "Cash"; }
+}
+class CardPayment extends Payment {
+  constructor(amount, gateway) { super(amount); this.gateway = gateway; this.terminalRef = null; }
+  process() {
+    const r = this.gateway.authorise(this.amount);
+    this.approved = r.approved; this.terminalRef = r.ref;
+    if (this.approved) this.paidAt = new Date();
+    return this.approved;
+  }
+  isDeclined() { return !this.approved; }
+  get method() { return "Bank card"; }
+}
+class QrPayment extends Payment {
+  constructor(amount, provider) { super(amount); this.provider = provider; this.qrReference = null; }
+  generateQr() { this.qrReference = "QR-" + this.paymentId; return this.qrReference; }
+  process() { this.generateQr(); this.approved = true; this.paidAt = new Date(); return true; }
+  get method() { return "QR / payment app"; }
+}
+class SaleLine {
+  constructor(product, quantity) { this.product = product; this.quantity = quantity; this.unitPrice = product.getPrice(); }
+  getSubtotal() { return this.quantity * this.unitPrice; }
+  changeQuantity(qty) { this.quantity = qty; }
+}
+class Sale {
+  constructor(assistant, branch) {
+    this.saleId = null; this.assistant = assistant; this.branch = branch;
+    this.createdAt = new Date(); this.status = "Open"; this.receiptNo = null;
+    this.lines = [];      // composition: lines live and die with the sale
+    this.payment = null;  // 0..1
+  }
+  addLine(product, qty = 1) {
+    const line = this.lines.find(l => l.product === product);
+    const wanted = (line ? line.quantity : 0) + qty;
+    const left = this.branch.getStockLevel(product);
+    if (wanted > left) throw new Error(`Only ${left} of ${product.name} in stock`);
+    if (line) line.changeQuantity(wanted); else this.lines.push(new SaleLine(product, qty));
+  }
+  removeLine(line) { this.lines = this.lines.filter(l => l !== line); }
+  calculateTotal() { return this.lines.reduce((t, l) => t + l.getSubtotal(), 0); }
+  /* Stock is deducted only after the payment is approved (CW1 sequence diagram, UC-02). */
+  complete(payment) {
+    if (!payment.process()) return false;
+    this.lines.forEach(l => this.branch.stockFor(l.product).deduct(l.quantity));
+    this.payment = payment; this.status = "Completed";
+    this.receiptNo = String(++seq.receipt).padStart(6, "0"); this.saleId = seq.receipt;
+    return true;
+  }
+}
+
+/* =============================== domain: orders =============================== */
+const OrderStatus = Object.freeze({
+  AWAITING_DEPOSIT: "Awaiting deposit", CONFIRMED: "Confirmed", IN_PRODUCTION: "In production",
+  READY: "Ready", COLLECTED: "Collected", CANCELLED: "Cancelled"
+});
+const STATUS_FLOW = [OrderStatus.CONFIRMED, OrderStatus.IN_PRODUCTION, OrderStatus.READY, OrderStatus.COLLECTED];
+const CAKE_PRICE_PER_KG = { "Fondant": 210000, "Children's": 190000, "Chocolate": 170000, "Corporate": 230000 };
+const CUSTOM_DESIGN_SURCHARGE = 60000;
+
+class Customer {
+  constructor(customerId, name, phone) { this.customerId = customerId; this.name = name; this.phone = phone; this.orders = []; }
+  getOrderHistory() { return this.orders; }
+  matchesPhone(p) { return this.phone.replace(/\D/g, "") === String(p).replace(/\D/g, ""); }
+}
+class CakeDesign {
+  constructor(cakeType, sizeKg, filling, inscription, designNotes, referencePhoto) {
+    this.cakeType = cakeType; this.sizeKg = sizeKg; this.filling = filling;
+    this.inscription = inscription; this.designNotes = designNotes; this.referencePhoto = referencePhoto;
+  }
+  isStandardDesign() { return !this.designNotes && !this.referencePhoto; }
+  getBasePrice() { return CAKE_PRICE_PER_KG[this.cakeType] * this.sizeKg; }
+}
+class ProductionSlot {
+  constructor(slotDate, capacity, booked, schedule) { this.slotDate = slotDate; this.capacity = capacity; this.booked = booked; this.heldUntil = null; this.schedule = schedule; }
+  hasCapacity() { return this.booked < this.capacity; }
+  reserve() { if (!this.hasCapacity()) throw new Error("Production slot is full"); this.booked++; }
+  release() { if (this.booked > 0) this.booked--; }
+  suggestAlternatives(n = 3) { return this.schedule.nextFreeDates(this.slotDate, n); }
+}
+class ProductionSchedule {
+  constructor(defaultCapacity) { this.defaultCapacity = defaultCapacity; this.slots = new Map(); }
+  slotFor(dateIso) {
+    if (!this.slots.has(dateIso)) this.slots.set(dateIso, new ProductionSlot(dateIso, this.defaultCapacity, 0, this));
+    return this.slots.get(dateIso);
+  }
+  nextFreeDates(afterIso, n) {
+    const out = []; let d = fromIso(afterIso);
+    for (let i = 0; i < 30 && out.length < n; i++) { d = addDays(d, 1); if (this.slotFor(iso(d)).hasCapacity()) out.push(iso(d)); }
+    return out;
+  }
+}
+/* Head office could not confirm these rules (interview Q10), so they are parameters in one class. */
+class DepositPolicy {
+  constructor(depositRate, leadTimeDays, changeCutoffHours) { this.depositRate = depositRate; this.leadTimeDays = leadTimeDays; this.changeCutoffHours = changeCutoffHours; }
+  depositFor(total) { return Math.round(total * this.depositRate); }
+  earliestDate(todayDate) { return addDays(todayDate, this.leadTimeDays); }
+  canChange(order, now = new Date()) { return order.collectionAt - now > this.changeCutoffHours * 3600e3; }
+}
+class CustomOrder {
+  constructor(customer, design, collectionAt, slot, policy, takenBy) {
+    this.orderNo = null; this.customer = customer; this.design = design; // composition
+    this.collectionAt = collectionAt; this.slot = slot; this.policy = policy; this.takenBy = takenBy;
+    this.totalPrice = this.calculateTotal(); this.depositPaid = 0; this.status = null;
+    this.summaryConfirmed = false; this.payments = []; // 0..2: deposit and balance
+  }
+  checkAvailability() { return this.slot.hasCapacity(); }
+  calculateTotal() { return this.design.getBasePrice() + (this.design.isStandardDesign() ? 0 : CUSTOM_DESIGN_SURCHARGE); }
+  getDepositDue() { return this.policy.depositFor(this.totalPrice); }
+  getBalanceDue() { return this.totalPrice - this.payments.reduce((t, p) => t + p.amount, 0); }
+  /* A declined deposit does not discard the order: the slot is held (CW1 activity diagram). */
+  hold() {
+    if (this.status === OrderStatus.AWAITING_DEPOSIT) return;
+    this.slot.reserve(); const end = new Date(); end.setHours(23, 59, 0, 0); this.slot.heldUntil = end;
+    this.status = OrderStatus.AWAITING_DEPOSIT;
+  }
+  confirm(deposit) {
+    if (!this.summaryConfirmed) throw new Error("Read the summary to the customer and tick the confirmation first");
+    if (!deposit.process()) { this.hold(); return false; }
+    if (this.status !== OrderStatus.AWAITING_DEPOSIT) this.slot.reserve();
+    this.payments.push(deposit); this.depositPaid = deposit.amount;
+    this.orderNo = `CO-${new Date().getFullYear()}-${String(++seq.order).padStart(5, "0")}`;
+    this.status = OrderStatus.CONFIRMED;
+    return true;
+  }
+  updateStatus(next) {
+    const i = STATUS_FLOW.indexOf(this.status), j = STATUS_FLOW.indexOf(next);
+    if (i < 0 || j !== i + 1) throw new Error(`Cannot move from ${this.status} to ${next}`);
+    this.status = next;
+  }
+  collect(balancePayment) {
+    if (!balancePayment.process()) return false;
+    this.payments.push(balancePayment); this.updateStatus(OrderStatus.COLLECTED); return true;
+  }
+  cancel() {
+    if (this.status === OrderStatus.COLLECTED || this.status === OrderStatus.CANCELLED) return;
+    this.slot.release(); this.status = OrderStatus.CANCELLED;
+  }
+}
+
+/* =============================== domain: delivery =============================== */
+class DeliveryOrder {
+  constructor(orderNo, source, branchId, status, paymentType, amount, items, courier) {
+    this.orderNo = orderNo; this.source = source; this.branchId = branchId; this.status = status;
+    this.paymentType = paymentType; this.amount = amount; this.items = items; this.courier = courier; this.pickedUpAt = null;
+  }
+  cashToCollect() { return this.paymentType === "Cash on delivery" ? this.amount : 0; }
+  handOver() { this.status = "Picked up"; this.pickedUpAt = new Date(); }
+}
+/* Five refusal paths are checked before a handover (CW1 sequence diagram, UC-03). */
+class HandoverVerifier {
+  constructor(orders, branch) { this.orders = orders; this.branch = branch; }
+  verify(orderNo) {
+    const o = this.orders.find(x => x.orderNo.toLowerCase() === String(orderNo).trim().toLowerCase());
+    if (!o) return { ok: false, reason: "Order number not found. Ask the courier to check the number in the app." };
+    if (o.branchId !== this.branch.branchId) return { ok: false, reason: "This order belongs to another branch. Send the courier to that branch." };
+    if (o.status === "Picked up") return { ok: false, reason: `This order was already picked up at ${fmtTime(o.pickedUpAt)}. Do not hand it over again.` };
+    if (o.status === "Cancelled") return { ok: false, reason: "This order was cancelled by the customer. Nothing to hand over." };
+    if (o.status !== "Ready") return { ok: false, reason: "The order is not ready yet. Ask the courier to wait." };
+    return { ok: true, order: o };
+  }
+}
+
+/* =============================== domain: inventory (closing) and reporting =============================== */
+const WRITE_OFF_REASONS = ["Expired shelf life", "Damaged", "Display sample", "Counting error", "Missing"];
+class StockCount {
+  constructor(branch) {
+    this.branch = branch; this.countedAt = new Date();
+    this.lines = branch.stock.map(s => ({ item: s, system: s.quantity, counted: s.quantity, sellTomorrow: s.product.keepsOvernight, reason: "" }));
+  }
+  diff(l) { return l.counted - l.system; }
+  needsReason(l) { return this.diff(l) !== 0 || (!l.sellTomorrow && l.counted > 0); }
+  missingReasons() { return this.lines.filter(l => this.needsReason(l) && !l.reason); }
+  writeOffLines() { return this.lines.filter(l => !l.sellTomorrow && l.counted > 0); }
+  writeOffTotal() { return this.writeOffLines().reduce((t, l) => t + l.counted * l.item.product.unitPrice, 0); }
+  needsApproval() { return this.writeOffTotal() > this.branch.writeOffLimit; }
+  submit(approval, salesReport) {
+    const report = new ClosingReport(this, approval, salesReport);
+    this.lines.forEach(l => { l.item.quantity = l.sellTomorrow ? l.counted : 0; l.item.lastCountedAt = this.countedAt; });
+    return report;
+  }
+}
+class ClosingReport {
+  constructor(count, approval, salesReport) {
+    this.date = count.countedAt; this.salesTotal = salesReport.total(); this.transactions = salesReport.count();
+    this.writeOffTotal = count.writeOffTotal(); this.approval = approval;
+    this.differences = count.lines.filter(l => count.diff(l) !== 0).map(l => ({ name: l.item.product.name, diff: count.diff(l), reason: l.reason }));
+    this.suggested = count.lines.map(l => ({ name: l.item.product.name, qty: Math.max(0, l.item.product.avgDailySales - (l.sellTomorrow ? l.counted : 0)) })).filter(x => x.qty > 0);
+  }
+  isPendingApproval() { return this.approval.startsWith("Pending"); }
+}
+class SalesReport {
+  constructor(seedByHour) { this.byHour = seedByHour; this.sales = []; }
+  record(sale) {
+    this.sales.push(sale);
+    const h = Math.min(22, Math.max(8, sale.createdAt.getHours()));
+    const b = this.byHour[h] || (this.byHour[h] = { total: 0, count: 0 });
+    b.total += sale.calculateTotal(); b.count++;
+  }
+  total() { return Object.values(this.byHour).reduce((t, b) => t + b.total, 0); }
+  count() { return Object.values(this.byHour).reduce((t, b) => t + b.count, 0); }
+}
+class ReplenishmentRequest {
+  constructor(lines, deliverBy, note, requestedBy) {
+    this.requestNo = "RR-" + String(++seq.rr).padStart(4, "0"); this.lines = lines; this.deliverBy = deliverBy;
+    this.note = note; this.requestedBy = requestedBy; this.sentAt = new Date();
+  }
+  totalUnits() { return this.lines.reduce((t, l) => t + l.qty, 0); }
+}
+
+/* =============================== integration =============================== */
+/* Shared outbox: every external message is either sent or queued while the branch is offline (NFR-02). */
+class Outbox {
+  constructor() { this.online = true; this.messages = []; }
+  post(channel, to, text) { this.messages.unshift({ at: new Date(), channel, to, text, status: this.online ? "Sent" : "Queued" }); }
+  queued() { return this.messages.filter(m => m.status === "Queued").length; }
+  flush() { let n = 0; this.messages.forEach(m => { if (m.status === "Queued") { m.status = "Sent"; n++; } }); return n; }
+}
+/* «interface» NotificationService: sendOrderConfirmation, sendOrderReady, sendLowStockAlert */
+class SmsNotifier {
+  constructor(outbox, senderName) { this.outbox = outbox; this.senderName = senderName; }
+  sendOrderConfirmation(o) { this.outbox.post("SMS", o.customer.phone, `${this.senderName}: order ${o.orderNo} confirmed. Collect ${fmtDate(o.collectionAt)} ${fmtTime(o.collectionAt)}. Balance ${money(o.getBalanceDue())}.`); }
+  sendOrderReady(o) { this.outbox.post("SMS", o.customer.phone, `${this.senderName}: order ${o.orderNo} is ready for collection.`); }
+  sendLowStockAlert(i) { this.outbox.post("Alert", "Branch manager", i.isSoldOut() ? `${i.product.name} is sold out.` : `Low stock: ${i.product.name}, ${i.quantity} left.`); }
+}
+/* «interface» PaymentGateway: authorise(amount) */
+class CardTerminalAdapter {
+  constructor() { this.declineNext = false; this.n = 100; }
+  authorise(amount) { const approved = !this.declineNext; this.declineNext = false; return { approved, ref: approved ? "TRM-" + (++this.n) : null }; }
+}
+/* «interface» DeliveryPlatform: notifyPickup(order) */
+class YandexAdapter { constructor(outbox) { this.outbox = outbox; } notifyPickup(o) { this.outbox.post("Yandex", "Platform", `Order ${o.orderNo} picked up by courier at ${fmtTime(o.pickedUpAt)}.`); } }
+class SafiaAppAdapter { constructor(outbox) { this.outbox = outbox; } notifyPickup(o) { this.outbox.post("Safia app", "Platform", `Order ${o.orderNo} picked up by courier at ${fmtTime(o.pickedUpAt)}.`); } }
+
+/* =============================== demo data (invented for the prototype) =============================== */
+const outbox = new Outbox();
+const notifier = new SmsNotifier(outbox, "Safia");
+const terminal = new CardTerminalAdapter();
+const platforms = { "Yandex": new YandexAdapter(outbox), "Safia app": new SafiaAppAdapter(outbox) };
+/* Each branch has its own stock, staff, payment methods, write-off limit and sales figures (NFR-05).
+   Production, customers and the deposit policy are shared by the whole chain. Branch names other than Vega are invented. */
+const CATALOGUE = [
+  [1, "Medovik slice", "Cakes", "478001", 18000, false, 40, 24, 6], [2, "Napoleon cake", "Cakes", "478002", 185000, true, 8, 4, 3],
+  [3, "Honey cake, whole", "Cakes", "478003", 160000, true, 6, 0, 2], [4, "Cheesecake slice", "Desserts", "478004", 32000, false, 20, 12, 4],
+  [5, "Eclair", "Pastries", "478005", 12000, false, 30, 18, 6], [6, "Croissant", "Pastries", "478006", 14000, false, 45, 30, 8],
+  [7, "Cookie box", "Desserts", "478007", 45000, true, 10, 9, 3], [8, "Cappuccino", "Drinks", "478008", 22000, true, 60, 80, 10],
+  [9, "Black tea", "Drinks", "478009", 12000, true, 50, 90, 10]
+].map(([id, n, c, bc, p, keep, avg, q, low]) => ({ product: new Product(id, n, c, bc, p, keep, avg), q, low }));
+const CONTEXTS = new Map();
+function addBranch(b, staff, stockFactor, salesFactor, soldOutId) {
+  staff.forEach(e => b.employees.push(e));
+  CATALOGUE.forEach(c => b.stock.push(new StockItem(c.product, c.product.productId === soldOutId ? 0 : Math.max(1, Math.round((c.q || 6) * stockFactor)), c.low)));
+  if (soldOutId) b.stock.find(x => x.product.productId === soldOutId).soldOutAt = (() => { const d = new Date(); d.setHours(13, 20, 0, 0); return d; })();
+  const seed = { 8: [420000, 14], 9: [780000, 26], 10: [1240000, 38], 11: [1630000, 47], 12: [2110000, 61], 13: [1890000, 55] }; const by = {};
+  Object.entries(seed).forEach(([h, [t, n]]) => by[h] = { total: Math.round(t * salesFactor / 1000) * 1000, count: Math.round(n * salesFactor) });
+  CONTEXTS.set(b.branchId, { branch: b, salesReport: new SalesReport(by), lastClosing: null, lastReplenishment: null });
+}
+addBranch(new Branch(12, "Vega branch", "Vega Centre, Tashkent", true, 150000, 8, 23), [new SalesAssistant(1001, "D. Karimova", "1234"), new BranchManager(2001, "S. Rakhimov", "4321")], 1, 1, 3);
+addBranch(new Branch(7, "Chilanzar branch", "Chilanzar district, Tashkent", false, 100000, 0, 24), [new SalesAssistant(1002, "M. Yusupova", "1234"), new BranchManager(2002, "A. Tursunov", "4321")], 0.7, 0.8, 7);
+addBranch(new Branch(21, "Yunusabad branch", "Yunusabad district, Tashkent", true, 200000, 7, 24), [new SalesAssistant(1003, "N. Saidova", "1234"), new BranchManager(2003, "B. Ismoilov", "4321")], 1.4, 1.3, 0);
+[[31, "Mirzo Ulugbek branch", "Mirzo Ulugbek district, Tashkent", true, 150000, 8, 23, "G. Akhmedova", "R. Sultanov", 1.1, 1.0, 5],
+ [32, "Sergeli branch", "Sergeli district, Tashkent", false, 100000, 8, 22, "Z. Tosheva", "O. Nurmatov", 0.6, 0.6, 0],
+ [33, "Yakkasaray branch", "Yakkasaray district, Tashkent", true, 150000, 0, 24, "L. Hamidova", "K. Rasulov", 0.9, 1.1, 2],
+ [34, "Almazar branch", "Almazar district, Tashkent", true, 120000, 8, 23, "F. Qodirova", "D. Ergashev", 0.8, 0.7, 0],
+ [40, "Samarkand branch", "Registan street, Samarkand", false, 100000, 9, 22, "S. Mirzaeva", "U. Hakimov", 1.0, 0.9, 4]
+].forEach(([id, n, a, qr, lim, o, c, sa, bm, sf, vf, so], k) => addBranch(new Branch(id, n, a, qr, lim, o, c), [new SalesAssistant(1004 + k, sa, "1234"), new BranchManager(2004 + k, bm, "4321")], sf, vf, so));
+let ctx = CONTEXTS.get(12), branch = ctx.branch, salesReport = ctx.salesReport, lastClosing = null, lastReplenishment = null;
+function selectBranch(id) {
+  ctx.lastClosing = lastClosing; ctx.lastReplenishment = lastReplenishment;
+  ctx = CONTEXTS.get(Number(id)); branch = ctx.branch; salesReport = ctx.salesReport; lastClosing = ctx.lastClosing; lastReplenishment = ctx.lastReplenishment;
+}
+const assistant = branch.employees[0];
+
+const policy = new DepositPolicy(0.5, 1, 24);
+const schedule = new ProductionSchedule(3);
+schedule.slotFor(iso(addDays(today(), 1))).booked = 3;          // tomorrow is full, to show the alternative flow
+schedule.slotFor(iso(addDays(today(), 2))).booked = 1;
+const customers = [new Customer(1, "Aziza Karimova", "+998 90 123 45 67"), new Customer(2, "Bobur Aliyev", "+998 93 555 10 20")];
+const orders = [];
+(() => { // one existing confirmed order so the register is not empty
+  const at = addDays(today(), 2); at.setHours(16, 0);
+  const o = new CustomOrder(customers[1], new CakeDesign("Chocolate", 1.5, "Chocolate", "Congratulations", "", false), at, schedule.slotFor(iso(at)), policy, assistant);
+  o.summaryConfirmed = true; o.branchId = 12; o.confirm(new CashPayment(o.getDepositDue(), o.getDepositDue())); orders.push(o); customers[1].orders.push(o);
+})();
+(() => { // more Vega orders in every status, so the register can be searched, filtered and paged
+  [["Dilnoza Rashidova", "+998 91 222 33 44"], ["Jasur Karimov", "+998 97 700 12 12"], ["Malika Yusupova", "+998 99 801 45 45"], ["Timur Abdullaev", "+998 90 345 67 89"], ["Nodira Ergasheva", "+998 93 111 22 33"], ["Sardor Nazarov", "+998 94 620 30 40"]]
+    .forEach(([n, p]) => customers.push(new Customer(customers.length + 1, n, p)));
+  [[0, "Fondant", 2, "Berry", 3, "CONFIRMED"], [2, "Children's", 3, "Vanilla", 3, "IN_PRODUCTION"], [3, "Corporate", 4, "Chocolate", 4, "READY"], [4, "Chocolate", 1, "Chocolate", 4, "COLLECTED"],
+   [5, "Fondant", 1.5, "Honey", 5, "CONFIRMED"], [6, "Children's", 2, "Berry", 5, "CANCELLED"], [7, "Fondant", 3, "Honey", 6, "IN_PRODUCTION"], [2, "Chocolate", 2, "Vanilla", 6, "AWAITING"]]
+    .forEach(([ci, type, kg, fill, day, st], k) => {
+      const at = addDays(today(), day); at.setHours(10 + k, 0, 0, 0); const c = customers[ci];
+      const o = new CustomOrder(c, new CakeDesign(type, kg, fill, "", k % 2 ? "Custom figures" : "", k % 3 === 0), at, schedule.slotFor(iso(at)), policy, assistant);
+      o.branchId = 12; o.summaryConfirmed = true;
+      if (st === "AWAITING") { terminal.declineNext = true; o.confirm(new CardPayment(o.getDepositDue(), terminal)); }
+      else { const dep = o.getDepositDue(); o.confirm(new CashPayment(dep, dep));
+        const steps = { IN_PRODUCTION: 1, READY: 2, COLLECTED: 2 }[st] || 0; for (let j = 0; j < steps; j++) o.updateStatus(STATUS_FLOW[j + 1]);
+        if (st === "COLLECTED") { const b = o.getBalanceDue(); o.collect(new CashPayment(b, b)); } if (st === "CANCELLED") o.cancel(); }
+      orders.push(o); c.orders.push(o);
+    });
+})();
+const deliveryOrders = [
+  new DeliveryOrder("YX-48231", "Yandex", 12, "Ready", "Cash on delivery", 122000, [["Cookie box", 2], ["Cheesecake slice", 1]], "Courier 6402"),
+  new DeliveryOrder("SA-11010", "Safia app", 12, "Preparing", "Paid online", 54000, [["Medovik slice", 3]], "Courier 2931"),
+  new DeliveryOrder("YX-48240", "Yandex", 12, "Picked up", "Paid online", 44000, [["Cappuccino", 2]], "Courier 7150"),
+  new DeliveryOrder("SA-11015", "Safia app", 12, "Ready", "Paid online", 90000, [["Cookie box", 2]], "Courier 3388"),
+  new DeliveryOrder("YX-48244", "Yandex", 12, "Preparing", "Cash on delivery", 36000, [["Eclair", 3]], "Courier 5067"),
+  new DeliveryOrder("YX-48213", "Yandex", 12, "Ready", "Cash on delivery", 96000, [["Medovik slice", 2], ["Eclair", 4], ["Cappuccino", 1]], "Courier 7741"),
+  new DeliveryOrder("SA-10977", "Safia app", 12, "Ready", "Paid online", 64000, [["Cheesecake slice", 2]], "Courier 2210"),
+  new DeliveryOrder("YX-48220", "Yandex", 12, "Preparing", "Paid online", 185000, [["Napoleon cake", 1]], "Courier 9034"),
+  new DeliveryOrder("SA-10981", "Safia app", 12, "Picked up", "Paid online", 28000, [["Croissant", 2]], "Courier 1188"),
+  new DeliveryOrder("YX-48199", "Yandex", 12, "Cancelled", "Cash on delivery", 36000, [["Medovik slice", 2]], "Courier 5520"),
+  new DeliveryOrder("SA-10990", "Safia app", 7, "Ready", "Paid online", 45000, [["Cookie box", 1]], "Courier 3307"),
+  new DeliveryOrder("YX-48251", "Yandex", 7, "Ready", "Cash on delivery", 54000, [["Medovik slice", 3]], "Courier 6120"),
+  new DeliveryOrder("YX-48300", "Yandex", 21, "Ready", "Cash on delivery", 185000, [["Napoleon cake", 1]], "Courier 4471"),
+  new DeliveryOrder("SA-11002", "Safia app", 21, "Preparing", "Paid online", 64000, [["Cheesecake slice", 2]], "Courier 2885")
+];
+deliveryOrders.filter(o => o.status === "Picked up").forEach(o => { const d = new Date(); d.setHours(14, 5, 0, 0); o.pickedUpAt = d; });
+/* =============================== presentation =============================== */
+const S = { screen: "login", user: null, loginErr: "", fails: 0, lockUntil: 0, lid: "", lpin: "", lists: {}, sale: null, payMethod: "cash", cash: "", payErr: "", lastSale: null, alerts: [],
+  of: null, order: null, alts: [], depMethod: "card", dlvNo: "", dlv: null, ticks: [], count: null, pin: "", pinErr: "", rr: null, dialog: null, drawer: false, toast: "" };
+const SCREENS = { login: "S01 Login", menu: "S02 Overview", sale: "S03 Counter Sale", pay: "S04 Payment", receipt: "S05 Receipt", order1: "S06 Custom Order Details",
+  order2: "S07 Order Summary and Deposit", order3: "S08 Order Confirmed", register: "Order register", delivery: "S09 Delivery Handover", check: "S10 Delivery Order Check",
+  handed: "S11 Handover Complete", closing: "S12 Closing Stock Count", report: "S14 Closing Report", dash: "S15 Manager Dashboard", replen: "S16 Replenishment Request" };
+const go = s => { S.screen = s; S.dialog = null; render(); window.scrollTo(0, 0); };
+const toast = t => { S.toast = t; render(); clearTimeout(toast.t); toast.t = setTimeout(() => { S.toast = ""; render(); }, 3500); };
+const statusPill = st => { const k = { "Awaiting deposit": "warn", "Confirmed": "acc", "In production": "acc", "Ready": "good", "Collected": "", "Cancelled": "bad", "Preparing": "warn", "Picked up": "" }[st] ?? ""; return `<span class="pill ${k}">${esc(st)}</span>`; };
+const newOrderForm = () => ({ phone: "", name: "", found: null, cakeType: "Fondant", sizeKg: "2", filling: "Honey", inscription: "", notes: "", photo: false, date: iso(addDays(today(), 1)), time: "10:00", err: "" });
+
+const SEARCH_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>';
+/* One set of controls for every list: search box, filter chips with counts, pager. State is kept per list. */
+const L = k => (S.lists[k] || (S.lists[k] = { q: "", f: "All", page: 1, sort: "", flag: false }));
+const qOf = k => L(k).q.trim().toLowerCase();
+function searchBox(k, ph) { const l = L(k);
+  return `<span class="search">${SEARCH_ICON}<input id="q_${k}" type="text" data-list="${k}" value="${esc(l.q)}" placeholder="${esc(ph)}" aria-label="${esc(ph)}" autocomplete="off">${l.q ? `<button class="clr" type="button" data-act="listClear" data-list="${k}" aria-label="Clear search">×</button>` : ""}</span>`; }
+function chips(k, opts) { const l = L(k);
+  return `<div class="row chips" role="group" aria-label="Filter">${opts.map(([v, n]) => `<button type="button" class="btn sm ${l.f === v ? "on" : ""}" data-act="listFilter" data-list="${k}" data-f="${esc(v)}" aria-pressed="${l.f === v}">${esc(v)}${n === undefined ? "" : `<span class="cnt">${n}</span>`}</button>`).join("")}</div>`; }
+function pager(k, total, size, empty) { const l = L(k); const pages = Math.max(1, Math.ceil(total / size)); if (l.page > pages) l.page = pages;
+  const from = (l.page - 1) * size; const nums = []; for (let p = 1; p <= pages; p++) nums.push(p);
+  const b = (p, t, dis, on) => `<button type="button" class="btn sm ${on ? "on" : ""}" data-act="listPage" data-list="${k}" data-p="${p}" ${dis ? "disabled" : ""} ${on ? 'aria-current="page"' : ""} aria-label="${t === "‹" ? "Previous page" : t === "›" ? "Next page" : "Page " + t}">${t}</button>`;
+  return { from, to: from + size, html: `<div class="pager"><span class="small muted">${total ? `Showing ${from + 1}–${Math.min(total, from + size)} of ${total}` : esc(empty || "Nothing matches. Clear the search or choose another filter.")}</span>
+    ${pages > 1 ? `<div class="row" style="gap:4px">${b(l.page - 1, "‹", l.page === 1)}${nums.map(p => b(p, String(p), false, p === l.page)).join("")}${b(l.page + 1, "›", l.page === pages)}</div>` : ""}</div>` }; }
+
+const ICON = {
+  home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>', sale: '<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M3 4h2l2.5 12h11l2-8H6.5"/>',
+  cake: '<path d="M4 20h16v-7H4z"/><path d="M4 16c2 1.5 4-1.5 6 0s4-1.5 6 0 2 .5 4 0"/><path d="M12 13V9"/><path d="M12 6v.5"/>', list: '<path d="M8 6h12M8 12h12M8 18h12"/><path d="M4 6h.5M4 12h.5M4 18h.5"/>',
+  truck: '<path d="M3 7h11v9H3z"/><path d="M14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>', box: '<path d="M4 8l8-4 8 4v9l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v9"/>',
+  chart: '<path d="M4 20V4"/><path d="M4 20h16"/><path d="M8 16v-5M12 16V8M16 16v-7"/>'
+};
+const NAV_OF = { menu: "home", sale: "sale", pay: "sale", receipt: "sale", order1: "order", order2: "order", order3: "order", register: "register",
+  delivery: "delivery", check: "delivery", handed: "delivery", closing: "closing", report: "closing", dash: "dash", replen: "dash" };
+const openOrders = () => orders.filter(o => o.branchId === branch.branchId && [OrderStatus.AWAITING_DEPOSIT, OrderStatus.CONFIRMED, OrderStatus.IN_PRODUCTION, OrderStatus.READY].includes(o.status));
+const waitingDeliveries = () => deliveryOrders.filter(o => o.branchId === branch.branchId && o.status === "Ready");
+function sidebar() {
+  const cur = NAV_OF[S.screen]; const mgr = S.user.canApproveWriteOff();
+  const item = (key, icon, label, attrs, badge, disabled) => `<button class="navi ${cur === key ? "on" : ""}" ${attrs} ${disabled ? "disabled" : ""} ${cur === key ? 'aria-current="page"' : ""}><svg viewBox="0 0 24 24" aria-hidden="true">${ICON[icon]}</svg><span>${label}</span>${badge ? `<span class="badge">${badge}</span>` : ""}</button>`;
+  return `<aside class="side"><nav class="side-in" aria-label="Main">
+    <div class="brand"><i aria-hidden="true">S</i><div><b>SAFIA</b><span>${esc(branch.name)}</span></div></div>
+    <div class="navlabel">Branch</div>
+    ${item("home", "home", "Overview", 'data-act="go" data-to="menu"')}
+    <div class="navlabel">Counter</div>
+    ${item("sale", "sale", "Counter sale", 'data-act="newSale"')}
+    ${item("order", "cake", "New cake order", 'data-act="newOrder"')}
+    ${item("register", "list", "Order register", 'data-act="go" data-to="register"', openOrders().length)}
+    ${item("delivery", "truck", "Deliveries", 'data-act="go" data-to="delivery"', waitingDeliveries().length)}
+    <div class="navlabel">End of day</div>
+    ${item("closing", "box", "Closing stock", 'data-act="startCount"')}
+    <div class="navlabel">Management</div>
+    ${item("dash", "chart", mgr ? "Reports and stock" : "Reports (manager)", 'data-act="go" data-to="dash"', 0, !mgr)}
+    <div class="who"><div><b>${esc(S.user.fullName)}</b><div class="hide-s" style="opacity:.75">${esc(S.user.getRole())}</div></div>
+      <button class="btn sm" data-act="logout">Log out</button></div>
+  </nav></aside>`;
+}
+function topbar() {
+  const q = outbox.queued();
+  return `<header class="top"><span class="bchip" title="Log out to switch branch"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11.500a7 7 0 10-14 0C5 14.800 12 21 12 21z"/><circle cx="12" cy="9.500" r="2.500"/></svg><b>${esc(branch.name)}</b><span class="muted">${branch.hoursLabel()}</span></span><span class="crumb">${esc(SCREENS[S.screen] || "")}</span><div class="sp"></div>
+    <span class="small muted">${fmtDate(new Date())}</span>
+    <button class="btn sm" data-act="toggleOnline" title="Switch the connection to the central server"><span class="dot ${outbox.online ? "" : "off"}"></span>${outbox.online ? "Online" : "Offline" + (q ? ` · ${q} queued` : "")}</button>
+    <button class="btn sm" data-act="drawer">Messages (${outbox.messages.length})</button></header>`;
+}
+function salesChart() {
+  const hours = []; for (let h = 8; h <= 22; h++) hours.push(h);
+  const max = Math.max(...hours.map(h => (salesReport.byHour[h] || { total: 0 }).total), 1); const W = 560, H = 190, bw = W / hours.length;
+  const bars = hours.map((h, i) => { const v = (salesReport.byHour[h] || { total: 0 }).total; const bh = Math.round(v / max * (H - 30));
+    return `<rect x="${i * bw + 5}" y="${H - 20 - bh}" width="${bw - 10}" height="${bh}" rx="3" fill="var(--chart)"><title>${pad(h)}:00 – ${money(v)}</title></rect><text x="${i * bw + bw / 2}" y="${H - 5}" text-anchor="middle" font-size="11" fill="var(--muted)">${pad(h)}</text>`; }).join("");
+  return `<div class="tablewrap"><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Sales by hour, highest ${money(max)}"><line x1="0" y1="${H - 20}" x2="${W}" y2="${H - 20}" stroke="var(--line)"/>${bars}</svg></div><span class="small muted">Highest hour: ${money(max)}. Sales registered in this session are added to the current hour.</span>`;
+}
+
+const V = {
+  login: () => { const locked = S.lockUntil > Date.now();
+    const feat = (ic, t) => `<div class="feat"><svg viewBox="0 0 24 24" aria-hidden="true">${ICON[ic]}</svg>${t}</div>`;
+    return `<div class="auth">
+    <section class="auth-hero">
+      <svg class="deco" viewBox="0 0 600 700" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><circle cx="540" cy="70" r="210" fill="rgba(255,255,255,.20)"/><circle cx="60" cy="720" r="240" fill="rgba(255,255,255,.14)"/><path d="M-20 540 C 180 440, 330 620, 640 380" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.5"/><path d="M300 -20 C 380 180, 520 220, 640 200" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.5"/></svg>
+      <div class="brand"><i aria-hidden="true">S</i><div><b>SAFIA</b><span>Branch Management System</span></div></div>
+      <h1>From the first sale<br>to the closing count,<br>on <em>one screen.</em></h1>
+      <p>Counter sales, custom cake orders, delivery handover and closing stock for every Safia branch, each with its own stock, staff and payment methods.</p>
+      <div class="feats">${feat("sale", "Register counter sales")}${feat("cake", "Take custom cake orders")}${feat("truck", "Hand over deliveries")}${feat("box", "Count closing stock")}</div>
+    </section>
+    <section class="auth-form"><div class="auth-card">
+      <div class="title"><i><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-5.5 7-5.5s6 1.500 7 5.500"/></svg></i><h1>Staff login</h1></div>
+      <span class="muted">Choose your branch, then enter your staff ID and PIN.</span>
+      <div class="stack" style="gap:8px"><b class="small">Branch</b>
+        ${searchBox("branch", `Search ${CONTEXTS.size} branches by name or district`)}
+        <div class="blist">${(() => { const q = qOf("branch"); const all = [...CONTEXTS.values()].map(c => c.branch).filter(b => !q || (b.name + " " + b.address).toLowerCase().includes(q));
+          const shown = q ? all.slice(0, 4) : [branch];
+          return (shown.map(b => `<button type="button" class="bopt ${b === branch ? "on" : ""}" data-act="pickBranch" data-id="${b.branchId}" aria-pressed="${b === branch}"><span><b>${esc(b.name)}</b><span class="small muted">${esc(b.address)} · ${b.hoursLabel()} · ${b.qrPaymentEnabled ? "cash, card, QR" : "cash, card"}</span></span><span class="pill ${b.isOpen() ? "good" : "bad"}">${b.isOpen() ? "Open" : "Closed"}</span></button>`).join("")
+            || `<div class="small muted">No branch matches “${esc(L("branch").q)}”.</div>`) + (q && all.length > 4 ? `<div class="small muted">${all.length - 4} more. Keep typing to narrow the list.</div>` : ""); })()}</div></div>
+      <form id="loginForm" class="stack">
+        <label class="f">Staff ID<input id="staffId" type="text" inputmode="numeric" autocomplete="off" data-bind="lid" value="${esc(S.lid)}" placeholder="${branch.employees[0].employeeId}"></label>
+        <label class="f">PIN<input id="staffPin" type="password" inputmode="numeric" autocomplete="off" maxlength="4" data-bind="lpin" value="${esc(S.lpin)}" placeholder="4 digits"></label>
+        ${S.loginErr ? `<div class="note bad">${esc(S.loginErr)}</div>` : ""}
+        <button class="btn primary big" type="submit" ${locked ? "disabled" : ""}>Log in →</button>
+      </form>
+      <div class="or">or enter the prototype as</div>
+      <div class="quick">${branch.employees.map(e => `<button class="qcard" data-act="quickLogin" data-id="${e.employeeId}"><span class="av">${esc(e.fullName[0])}</span><span><b>${esc(e.fullName)}</b><span class="small muted">${esc(e.getRole())}</span></span><span class="arr" aria-hidden="true">→</span></button>`).join("")}</div>
+      <div class="small muted">Three wrong PINs lock the login for 30 seconds.</div>
+      <div class="demo">Prototype accounts for this branch: ${branch.employees.map(e => `${e.getRole().toLowerCase()} ${e.employeeId} / ${e.canApproveWriteOff() ? "4321" : "1234"}`).join(", ")}. Demo data is invented and resets on reload. Not an official Safia system.</div>
+    </div></section></div>`; },
+
+  menu: () => {
+    const low = branch.getLowStockItems(); const mgr = S.user.canApproveWriteOff(); const oo = openOrders(); const wd = waitingDeliveries();
+    return `<div class="hero"><div><h1>Branch overview</h1><p>Sales, cake orders, deliveries and stock at ${esc(branch.name)} today.</p></div><div class="row"><button class="btn big" data-act="newOrder">New cake order</button><button class="btn primary big" data-act="newSale">New counter sale</button></div></div>
+    <div class="grid kpi">
+      <div class="card"><span class="small muted">Sales today</span><b class="num">${money(salesReport.total())}</b></div>
+      <div class="card"><span class="small muted">Transactions</span><b class="num">${salesReport.count()}</b></div>
+      <div class="card"><span class="small muted">Open custom orders</span><b class="num">${oo.length}</b></div>
+      <div class="card"><span class="small muted">Deliveries waiting</span><b class="num">${wd.length}</b></div>
+    </div>
+    <div class="grid cols2e">
+      <div class="card stack"><div class="panelhead"><h2>Stock needing attention</h2>${mgr ? `<button class="btn sm" data-act="startReplen">Request replenishment</button>` : ""}</div>
+        ${low.length ? `<div class="tablewrap"><table><tr><th>Product</th><th class="r">Left</th><th>State</th></tr>${low.map(i => `<tr><td>${esc(i.product.name)}</td><td class="r num">${i.quantity}</td><td>${i.isSoldOut() ? `<span class="pill bad">Sold out${i.soldOutAt ? " " + fmtTime(i.soldOutAt) : ""}</span>` : `<span class="pill warn">Low</span>`}</td></tr>`).join("")}</table></div>` : `<div class="muted">All products are above their threshold.</div>`}</div>
+      <div class="card stack"><div class="panelhead"><h2>Custom orders</h2><button class="btn sm" data-act="go" data-to="register">Open register</button></div>
+        ${oo.length ? `<div class="tablewrap"><table><tr><th>Order</th><th>Collection</th><th>Status</th></tr>${oo.slice(0, 5).map(o => `<tr><td><span class="mono">${o.orderNo || "not issued"}</span><div class="small muted">${esc(o.customer.name)}</div></td><td>${fmtDate(o.collectionAt)} ${fmtTime(o.collectionAt)}</td><td>${statusPill(o.status)}</td></tr>`).join("")}</table></div>` : `<div class="muted">No open custom orders.</div>`}</div>
+      <div class="card stack"><div class="panelhead"><h2>Deliveries waiting for a courier</h2><button class="btn sm" data-act="go" data-to="delivery">Hand over</button></div>
+        ${wd.length ? `<div class="tablewrap"><table><tr><th>Order</th><th>Source</th><th>Payment</th><th class="r">To collect</th></tr>${wd.map(o => `<tr><td class="mono">${o.orderNo}</td><td>${o.source}</td><td>${o.paymentType}</td><td class="r num">${o.cashToCollect() ? money(o.cashToCollect()) : "–"}</td></tr>`).join("")}</table></div>` : `<div class="muted">No orders are waiting.</div>`}</div>
+      <div class="card stack"><h2>Sales by hour (UZS)</h2>${salesChart()}</div>
+    </div>
+    <div class="note small">${outbox.online ? "Online. Messages to customers, platforms and production are sent immediately." : `Offline. Sales and orders are stored on this terminal; ${outbox.queued()} message(s) are queued and will be sent when the connection returns.`}</div>`;
+  },
+
+  sale: () => {
+    const l = L("sale"); const q = qOf("sale"); const sale = S.sale;
+    const base = branch.stock.filter(s => (!q || s.product.name.toLowerCase().includes(q) || s.product.barcode.includes(q)) && (!l.flag || !s.isSoldOut()));
+    const cats = ["All", ...new Set(branch.stock.map(s => s.product.category))];
+    let items = base.filter(s => l.f === "All" || s.product.category === l.f);
+    if (l.sort === "price") items = [...items].sort((a, b) => a.product.unitPrice - b.product.unitPrice);
+    if (l.sort === "stock") items = [...items].sort((a, b) => a.quantity - b.quantity);
+    if (l.sort === "name") items = [...items].sort((a, b) => a.product.name.localeCompare(b.product.name));
+    const pg = pager("sale", items.length, 8, "No product matches. Clear the search or choose another category.");
+    return `<div class="head"><h1>Counter sale</h1></div>
+    <div class="grid cols2">
+      <div class="stack">
+        <form id="scanForm" class="toolbar">${searchBox("sale", "Scan barcode or search product (try 478005)")}<button class="btn" type="submit">Add</button></form>
+        <div class="toolbar">${chips("sale", cats.map(c => [c, base.filter(s => c === "All" || s.product.category === c).length]))}
+          <button type="button" class="btn sm ${l.flag ? "on" : ""}" data-act="listFlag" data-list="sale" aria-pressed="${l.flag}">In stock only</button>
+          <select class="inline" id="sort_sale" data-sort="sale" aria-label="Sort products"><option value="">Sort: catalogue order</option><option value="name" ${l.sort === "name" ? "selected" : ""}>Sort: name</option><option value="price" ${l.sort === "price" ? "selected" : ""}>Sort: price, low to high</option><option value="stock" ${l.sort === "stock" ? "selected" : ""}>Sort: stock, low to high</option></select></div>
+        <div class="grid products">${items.slice(pg.from, pg.to).map(s => `<button class="prod" data-act="addProduct" data-id="${s.product.productId}" ${s.isSoldOut() ? "disabled" : ""}>
+            <div class="swatch" aria-hidden="true">${esc(s.product.name[0])}</div>
+            <div class="info"><b>${esc(s.product.name)}</b><span class="num">${money(s.product.unitPrice)}</span>
+            ${s.isSoldOut() ? `<span><span class="pill bad">Sold out</span></span>` : s.isLow() ? `<span><span class="pill warn">${s.quantity} left</span></span>` : `<span class="small muted">In stock: ${s.quantity}</span>`}</div></button>`).join("")}</div>
+        ${pg.html}
+      </div>
+      <div class="card stack">
+        <h2>Basket</h2>
+        ${sale.lines.length ? `<div class="tablewrap"><table class="tight">${sale.lines.map((l, i) => `<tr><td>${esc(l.product.name)}</td>
+          <td><div class="row" style="flex-wrap:nowrap;gap:4px"><button class="btn sm" data-act="qty" data-i="${i}" data-d="-1" aria-label="One less">–</button><b class="num">${l.quantity}</b><button class="btn sm" data-act="qty" data-i="${i}" data-d="1" aria-label="One more">+</button></div></td>
+          <td class="r num">${money(l.getSubtotal())}</td></tr>`).join("")}</table></div>` : `<div class="muted">Tap a product or scan its barcode to add it.</div>`}
+        <div class="row between"><span>Total</span><span class="total num">${money(sale.calculateTotal())}</span></div>
+        <div class="row end"><button class="btn" data-act="clearSale" ${sale.lines.length ? "" : "disabled"}>Clear</button><button class="btn primary big" data-act="toPay" ${sale.lines.length ? "" : "disabled"}>Pay</button></div>
+        <div class="small muted">Stock is reduced only after the payment is approved.</div>
+      </div>
+    </div>`;
+  },
+
+  pay: () => {
+    const total = S.sale.calculateTotal(); const cash = Number(S.cash) || 0;
+    const m = (k, t) => `<button class="btn big ${S.payMethod === k ? "on" : ""}" data-act="payMethod" data-m="${k}">${t}</button>`;
+    return `<div class="head"><h1>Payment</h1></div>
+    <div class="card stack"><span class="muted">Amount due</span><span class="total num" style="font-size:30px">${money(total)}</span>
+      <h2>Payment method</h2><div class="row">${m("cash", "Cash")}${m("card", "Bank card")}${branch.qrPaymentEnabled ? m("qr", "QR / payment app") : ""}</div>
+      ${S.payMethod === "cash" ? `<div class="grid cols2e"><label class="f">Cash received (UZS)<input id="cash" type="number" min="0" step="1000" data-bind="cash" data-rerender value="${esc(S.cash)}"></label>
+        <div class="stack"><span class="small muted">Change</span><b class="num" style="font-size:20px">${cash >= total ? money(cash - total) : "–"}</b></div></div>` : ""}
+      ${S.payMethod === "card" ? `<div class="note">The customer taps or inserts the card on the terminal.</div>
+        <label class="demo check"><input type="checkbox" id="declineNext" data-bind-term ${terminal.declineNext ? "checked" : ""}><span>Demo control: the bank declines the next card payment</span></label>` : ""}
+      ${S.payMethod === "qr" ? `<div class="note">A QR code is shown to the customer. This branch has QR payment enabled.</div>` : ""}
+      ${S.payErr ? `<div class="note bad">${esc(S.payErr)}</div>` : ""}
+      <div class="row between"><button class="btn" data-act="go" data-to="sale">‹ Back to basket</button><button class="btn primary big" data-act="confirmPay">Confirm payment</button></div></div>`;
+  },
+
+  receipt: () => {
+    const s = S.lastSale; const p = s.payment;
+    const lines = s.lines.map(l => `${(l.product.name + " x" + l.quantity).padEnd(26)}${money(l.getSubtotal()).padStart(14)}`).join("\n");
+    return `<div class="head"><h1>Sale saved · receipt no. ${s.receiptNo}</h1></div>
+    <div class="grid cols2e">
+      <div class="receipt">SAFIA · ${esc(branch.name)}\n${fmtDate(s.createdAt)}  ${fmtTime(s.createdAt)}\n${"-".repeat(40)}\n${esc(lines)}\n${"-".repeat(40)}\n${"TOTAL".padEnd(26)}${money(s.calculateTotal()).padStart(14)}\n${esc(p.method)}${p instanceof CashPayment ? ` ${money(p.cashReceived)} · change ${money(p.getChange())}` : p.terminalRef ? " · " + p.terminalRef : p.qrReference ? " · " + p.qrReference : ""}\nServed by: ${esc(s.assistant.fullName)}</div>
+      <div class="stack"><div class="note good">Branch stock was updated after the payment was approved.</div>
+        ${S.alerts.map(a => `<div class="note warn">${esc(a)} The branch manager has been alerted.</div>`).join("")}
+        <div class="row end"><button class="btn" data-act="go" data-to="menu">Overview</button><button class="btn primary big" data-act="newSale">New sale</button></div></div>
+    </div>`;
+  },
+
+  order1: () => {
+    const f = S.of; const opt = (arr, v) => arr.map(x => `<option ${x === v ? "selected" : ""}>${esc(x)}</option>`).join("");
+    return `<div class="head"><h1>Custom cake order</h1><div class="steps"><span class="cur">1 Details</span>›<span>2 Summary and deposit</span>›<span>3 Confirmed</span></div></div>
+    <div class="grid cols2e">
+      <div class="card stack"><h2>Customer</h2>
+        <div class="row" style="align-items:end"><label class="f" style="flex:1;min-width:180px">Customer phone<input id="ofPhone" type="text" data-bind="of.phone" value="${esc(f.phone)}" placeholder="+998 90 123 45 67"></label><button class="btn" data-act="findCustomer">Find</button></div>
+        ${f.found ? `<div class="small muted">${esc(f.found)}</div>` : ""}
+        <label class="f">Customer name<input id="ofName" type="text" data-bind="of.name" value="${esc(f.name)}"></label>
+        <h2>Cake</h2>
+        <label class="f">Cake type<select id="ofType" data-bind="of.cakeType">${opt(Object.keys(CAKE_PRICE_PER_KG), f.cakeType)}</select></label>
+        <label class="f">Size (kg)<select id="ofSize" data-bind="of.sizeKg">${opt(["1", "1.5", "2", "3", "4"], f.sizeKg)}</select></label>
+        <label class="f">Filling<select id="ofFill" data-bind="of.filling">${opt(["Honey", "Chocolate", "Berry", "Vanilla"], f.filling)}</select></label>
+        <label class="f">Text on the cake<input id="ofText" type="text" data-bind="of.inscription" value="${esc(f.inscription)}" maxlength="40"></label>
+      </div>
+      <div class="card stack"><h2>Design</h2>
+        <label class="f">Design notes (colours, figures, allergies)<textarea id="ofNotes" data-bind="of.notes">${esc(f.notes)}</textarea></label>
+        <label class="check"><input type="checkbox" id="ofPhoto" data-bind="of.photo" ${f.photo ? "checked" : ""}><span>Reference photo attached. It travels with the order to production.</span></label>
+        <h2>Collection</h2>
+        <div class="grid cols2e"><label class="f">Date<input id="ofDate" type="date" data-bind="of.date" value="${esc(f.date)}"></label><label class="f">Time<input id="ofTime" type="time" data-bind="of.time" value="${esc(f.time)}"></label></div>
+        <div class="small muted">Earliest possible date: ${fmtDate(policy.earliestDate(today()))} (lead time ${policy.leadTimeDays} day, configurable).</div>
+        ${f.err ? `<div class="note bad">${esc(f.err)}</div>` : ""}
+        <div class="row between"><button class="btn" data-act="go" data-to="menu">Cancel</button><button class="btn primary big" data-act="checkAvail">Check availability</button></div>
+      </div>
+    </div>`;
+  },
+
+  order2: () => {
+    const o = S.order, d = o.design; const held = o.status === OrderStatus.AWAITING_DEPOSIT;
+    const m = (k, t) => `<button class="btn ${S.depMethod === k ? "on" : ""}" data-act="depMethod" data-m="${k}">${t}</button>`;
+    return `<div class="head"><h1>Order summary and deposit</h1><div class="steps"><span>1 Details</span>›<span class="cur">2 Summary and deposit</span>›<span>3 Confirmed</span></div></div>
+    <div class="grid cols2e">
+      <div class="card stack"><h2>Read this summary back to the customer</h2>
+        <table><tr><th>Customer</th><td>${esc(o.customer.name)}, ${esc(o.customer.phone)}</td></tr>
+          <tr><th>Cake</th><td>${esc(d.cakeType)}, ${d.sizeKg} kg, ${esc(d.filling)} filling</td></tr>
+          <tr><th>Text</th><td>${esc(d.inscription) || "–"}</td></tr><tr><th>Design notes</th><td>${esc(d.designNotes) || "Standard design"}</td></tr>
+          <tr><th>Reference photo</th><td>${d.referencePhoto ? "Attached" : "None"}</td></tr>
+          <tr><th>Collection</th><td>${fmtDate(o.collectionAt)} at ${fmtTime(o.collectionAt)}</td></tr>
+          <tr><th>Production</th><td>${held ? `<span class="pill warn">Slot held until 23:59 today</span>` : `<span class="pill good">Slot available</span>`}</td></tr></table>
+        <label class="check"><input type="checkbox" id="readBack" data-bind="order.summaryConfirmed" data-rerender ${o.summaryConfirmed ? "checked" : ""}><span>The customer confirmed the summary</span></label>
+      </div>
+      <div class="card stack"><h2>Price</h2>
+        <div class="row between"><b>Total price</b><b class="num">${money(o.totalPrice)}</b></div>
+        <div class="row between"><span>Deposit (${Math.round(policy.depositRate * 100)}%, configurable)</span><span class="num">${money(o.getDepositDue())}</span></div>
+        <div class="row between"><span>Balance at collection</span><span class="num">${money(o.totalPrice - o.getDepositDue())}</span></div>
+        <h2>Deposit payment method</h2><div class="row">${m("cash", "Cash")}${m("card", "Bank card")}${branch.qrPaymentEnabled ? m("qr", "QR") : ""}</div>
+        ${S.depMethod === "card" ? `<label class="demo check"><input type="checkbox" id="declineDep" data-bind-term ${terminal.declineNext ? "checked" : ""}><span>Demo control: the bank declines the next card payment</span></label>` : ""}
+        <div class="row between"><div class="row">${held ? "" : `<button class="btn" data-act="go" data-to="order1">‹ Edit details</button>`}<button class="btn danger" data-act="discardOrder">${held ? "Cancel order" : "Customer declines"}</button></div>
+          <button class="btn primary big" data-act="takeDeposit" ${o.summaryConfirmed ? "" : "disabled"}>Take deposit and confirm</button></div>
+        ${o.summaryConfirmed ? "" : `<div class="small muted">Tick the confirmation to enable the deposit.</div>`}
+      </div>
+    </div>`;
+  },
+
+  order3: () => {
+    const o = S.order;
+    return `<div class="head"><h1>Order <span class="mono">${o.orderNo}</span> confirmed</h1><div class="steps"><span>1 Details</span>›<span>2 Summary and deposit</span>›<span class="cur">3 Confirmed</span></div></div>
+    <div class="grid cols2e">
+      <div class="card stack"><div class="note good">Deposit received: <b class="num">${money(o.depositPaid)}</b> (${esc(o.payments[0].method)})</div>
+        <div class="note good">SMS confirmation ${outbox.online ? "sent" : "queued (offline)"} to ${esc(o.customer.phone)}</div>
+        <div class="note good">Added to the production schedule for ${fmtDate(o.collectionAt)}</div></div>
+      <div class="card stack"><div class="row between"><span>Balance due at collection</span><b class="num">${money(o.getBalanceDue())}</b></div>
+        <div class="row between"><span>Changes allowed until</span><span>${fmtDate(new Date(o.collectionAt - policy.changeCutoffHours * 3600e3))} ${fmtTime(new Date(o.collectionAt - policy.changeCutoffHours * 3600e3))}</span></div>
+        <div class="small muted">Refunds need customer support approval.</div>
+        <h2>Order status</h2><div class="track">${STATUS_FLOW.map(s => `<span class="${STATUS_FLOW.indexOf(s) <= STATUS_FLOW.indexOf(o.status) ? "done" : ""}">${s}</span>`).join("")}</div></div>
+    </div>
+    <div class="row end"><button class="btn" data-act="go" data-to="register">Order register</button><button class="btn" data-act="go" data-to="menu">Overview</button><button class="btn primary big" data-act="newOrder">New order</button></div>`;
+  },
+
+  register: () => { const l = L("register"); const q = qOf("register"); const qd = q.replace(/\D/g, "");
+    const mine = orders.map((o, i) => ({ o, i })).filter(x => x.o.branchId === branch.branchId);
+    const found = mine.filter(({ o }) => !q || [o.orderNo || "", o.customer.name, o.design.cakeType].some(v => v.toLowerCase().includes(q)) || (qd.length > 2 && o.customer.phone.replace(/\D/g, "").includes(qd)));
+    let rows = found.filter(x => l.f === "All" || x.o.status === l.f);
+    if (l.sort === "date") rows = [...rows].sort((a, b) => a.o.collectionAt - b.o.collectionAt);
+    if (l.sort === "balance") rows = [...rows].sort((a, b) => b.o.getBalanceDue() - a.o.getBalanceDue());
+    const pg = pager("register", rows.length, 6, mine.length ? "" : "No custom orders at this branch yet. Use New custom order to take the first one.");
+    return `<div class="head"><h1>Order register</h1><button class="btn primary" data-act="newOrder">New custom order</button></div>
+    <div class="card stack">
+      <div class="toolbar">${searchBox("register", "Search by order number, customer, phone or cake")}
+        <select class="inline" id="sort_register" data-sort="register" aria-label="Sort orders"><option value="">Sort: newest first</option><option value="date" ${l.sort === "date" ? "selected" : ""}>Sort: collection date</option><option value="balance" ${l.sort === "balance" ? "selected" : ""}>Sort: balance due</option></select></div>
+      ${chips("register", [["All", found.length], ...Object.values(OrderStatus).map(st => [st, found.filter(x => x.o.status === st).length])])}
+      ${rows.length ? `<div class="tablewrap"><table><tr><th>Order</th><th>Customer</th><th>Collection</th><th>Status</th><th class="r">Balance</th><th>Action</th></tr>
+      ${rows.slice(pg.from, pg.to).map(({ o, i }) => { const nx = STATUS_FLOW[STATUS_FLOW.indexOf(o.status) + 1];
+        const act = o.status === OrderStatus.AWAITING_DEPOSIT ? `<button class="btn sm primary" data-act="resumeOrder" data-i="${i}">Take deposit</button>`
+          : o.status === OrderStatus.READY ? `<button class="btn sm primary" data-act="collectOrder" data-i="${i}">Collect and hand over</button>`
+          : nx ? `<button class="btn sm" data-act="advance" data-i="${i}">Mark ${nx.toLowerCase()}</button>` : "";
+        const cancel = [OrderStatus.AWAITING_DEPOSIT, OrderStatus.CONFIRMED].includes(o.status) ? `<button class="btn sm danger" data-act="cancelOrder" data-i="${i}">Cancel</button>` : "";
+        return `<tr><td><span class="mono">${o.orderNo || "not issued"}</span><div class="small muted">${esc(o.design.cakeType)}, ${o.design.sizeKg} kg</div></td><td>${esc(o.customer.name)}<div class="small muted num">${esc(o.customer.phone)}</div></td>
+          <td class="num">${fmtDate(o.collectionAt)} ${fmtTime(o.collectionAt)}</td><td>${statusPill(o.status)}</td><td class="r num">${[OrderStatus.CANCELLED, OrderStatus.COLLECTED].includes(o.status) ? "–" : money(o.getBalanceDue())}</td><td><div class="row" style="gap:6px">${act}${cancel}</div></td></tr>`; }).join("")}
+      </table></div>` : ""}
+      ${pg.html}
+    </div><div class="small muted">Status moves forward one step at a time: Confirmed, In production, Ready, Collected. The customer receives an SMS when the order is ready.</div>`; },
+
+  delivery: () => { const l = L("delivery"); const q = qOf("delivery");
+    const mine = deliveryOrders.filter(o => o.branchId === branch.branchId);
+    const found = mine.filter(o => (!q || o.orderNo.toLowerCase().includes(q) || o.courier.toLowerCase().includes(q)) && (!l.sort || o.source === l.sort));
+    const rows = found.filter(o => l.f === "All" || o.status === l.f);
+    const pg = pager("delivery", rows.length, 5, mine.length ? "" : "No delivery orders for this branch today.");
+    return `<div class="head"><h1>Delivery handover</h1></div>
+    <div class="grid cols2">
+      <div class="card stack"><h2>Delivery orders today</h2>
+        <div class="toolbar">${searchBox("delivery", "Search by order number or courier")}
+          <select class="inline" id="sort_delivery" data-sort="delivery" aria-label="Filter by source"><option value="">All sources</option><option ${l.sort === "Yandex" ? "selected" : ""}>Yandex</option><option ${l.sort === "Safia app" ? "selected" : ""}>Safia app</option></select></div>
+        ${chips("delivery", [["All", found.length], ...["Ready", "Preparing", "Picked up", "Cancelled"].map(st => [st, found.filter(o => o.status === st).length])])}
+        ${rows.length ? `<div class="tablewrap"><table><tr><th>Order no.</th><th>Source</th><th>Status</th><th>Payment</th><th></th></tr>
+        ${rows.slice(pg.from, pg.to).map(o => `<tr><td class="mono">${o.orderNo}</td><td>${o.source}</td><td>${statusPill(o.status)}</td><td>${o.paymentType}</td><td class="r">${o.status === "Ready" ? `<button class="btn sm" data-act="pickDelivery" data-no="${o.orderNo}">Use number</button>` : ""}</td></tr>`).join("")}</table></div>` : ""}
+        ${pg.html}</div>
+      <div class="card stack"><h2>Courier's order number</h2>
+        <form id="dlvForm" class="stack"><input id="dlvNo" class="mono" type="text" data-bind="dlvNo" value="${esc(S.dlvNo)}" placeholder="YX-48213" autocomplete="off" style="font-size:18px">
+        <button class="btn primary big" type="submit">Verify order</button></form>
+        <div class="small muted">An order is released only to the courier who gives its order number.</div>
+        <div class="demo">${branch.branchId === 12 ? "Demo numbers. Ready: YX-48213, SA-10977. Not ready: YX-48220. Already picked up: SA-10981. Cancelled: YX-48199. Other branch: SA-10990." : "Demo: enter a number from the list, or YX-48213 to see an order that belongs to another branch."}</div></div>
+    </div>`; },
+
+  check: () => { const o = S.dlv; const all = S.ticks.every(Boolean); const cash = o.cashToCollect();
+    return `<div class="head"><h1>Order <span class="mono">${o.orderNo}</span> · ${o.source} ${statusPill(o.status)}</h1></div>
+    <div class="grid cols2e">
+      <div class="card stack"><h2>Items to hand over (tick each)</h2>
+        ${o.items.map(([n, q], i) => `<label class="check"><input type="checkbox" id="tick${i}" data-tick="${i}" ${S.ticks[i] ? "checked" : ""}><span>${esc(n)} × ${q}</span></label>`).join("")}
+        <div class="small muted">${esc(o.courier)} (from the platform)</div></div>
+      <div class="stack"><div class="card" style="border-width:3px;border-color:${cash ? "var(--warn)" : "var(--good)"}"><div class="small muted">${cash ? "CASH ON DELIVERY · courier must collect" : "PAID ONLINE"}</div><div class="total num" style="font-size:28px">${cash ? money(cash) : "Collect nothing"}</div></div>
+        <div class="row between"><button class="btn" data-act="go" data-to="delivery">‹ Back</button><button class="btn primary big" data-act="handOver" ${all ? "" : "disabled"}>Confirm handover</button></div>
+        ${all ? "" : `<div class="small muted">Tick every item to enable the handover.</div>`}</div>
+    </div>`; },
+
+  handed: () => { const o = S.dlv; return `<div class="head"><h1>Order <span class="mono">${o.orderNo}</span> handed over at ${fmtTime(o.pickedUpAt)}</h1></div>
+    <div class="card stack"><div class="note good">Status changed to Picked up. It cannot be handed over twice.</div>
+      <div class="note good">Pickup notice ${outbox.online ? "sent" : "queued (offline)"} to ${o.source}.</div>
+      ${o.cashToCollect() ? `<div class="note warn">Cash to collect by the courier: <b class="num">${money(o.cashToCollect())}</b></div>` : ""}</div>
+    <div class="row end"><button class="btn" data-act="go" data-to="menu">Overview</button><button class="btn primary big" data-act="go" data-to="delivery">Next courier</button></div>`; },
+
+  closing: () => { const c = S.count; const miss = c.missingReasons(); const tot = c.writeOffTotal();
+    const lst = L("closing"); const cq = qOf("closing"); const all = c.lines.map((l, i) => ({ l, i })).filter(x => !cq || x.l.item.product.name.toLowerCase().includes(cq));
+    const tests = { "All": () => true, "Differences": x => c.diff(x.l) !== 0, "Write-offs": x => !x.l.sellTomorrow && x.l.counted > 0, "Needs reason": x => c.needsReason(x.l) && !x.l.reason };
+    const shown = all.filter(tests[lst.f] || tests.All);
+    return `<div class="head"><h1>Closing stock count · ${fmtDate(c.countedAt)}</h1></div>
+    <div class="card stack"><div class="toolbar">${searchBox("closing", "Search product")}${chips("closing", Object.keys(tests).map(k => [k, all.filter(tests[k]).length]))}</div>
+    ${shown.length ? "" : `<div class="muted">No product matches. Clear the search or choose another filter.</div>`}
+    <div class="tablewrap" ${shown.length ? "" : "hidden"}><table><tr><th>Product</th><th class="r">System</th><th>Counted</th><th class="r">Diff.</th><th>Sell tomorrow?</th><th>Reason</th></tr>
+      ${shown.map(({ l, i }) => { const d = c.diff(l); const need = c.needsReason(l);
+        return `<tr><td>${esc(l.item.product.name)}</td><td class="r num">${l.system}</td>
+        <td><input id="cnt${i}" type="number" min="0" step="1" value="${l.counted}" data-count="${i}" style="width:84px" aria-label="Counted ${esc(l.item.product.name)}"></td>
+        <td class="r num">${d ? `<span class="pill bad">${d > 0 ? "+" : ""}${d}</span>` : "0"}</td>
+        <td><select id="sell${i}" data-sell="${i}" aria-label="Sell tomorrow ${esc(l.item.product.name)}"><option value="1" ${l.sellTomorrow ? "selected" : ""}>Yes</option><option value="0" ${l.sellTomorrow ? "" : "selected"}>No – write off</option></select></td>
+        <td>${need ? `<select id="rsn${i}" data-reason="${i}" aria-label="Reason ${esc(l.item.product.name)}" ${l.reason ? "" : 'style="border-color:var(--bad)"'}><option value="">Choose a reason…</option>${WRITE_OFF_REASONS.map(r => `<option ${l.reason === r ? "selected" : ""}>${r}</option>`).join("")}</select>` : `<span class="muted">–</span>`}</td></tr>`; }).join("")}</table></div>
+    <span class="small muted">${shown.length} of ${c.lines.length} products shown. Filters only change the view; every product is submitted.</span></div>
+    ${miss.length ? `<div class="note bad">Choose a reason for: ${miss.map(l => esc(l.item.product.name)).join(", ")}. A difference must be recounted and explained before the count is submitted.</div>` : ""}
+    <div class="grid cols2e"><div class="card"><div class="row between"><span>Write-off total</span><b class="num">${money(tot)}</b></div>
+        <div class="row between"><span>Limit without approval (configurable)</span><span class="num">${money(branch.writeOffLimit)}</span></div></div>
+      <div class="note ${c.needsApproval() ? "warn" : "good"}">${c.needsApproval() ? "Above the limit. The branch manager must approve with a PIN." : "Within the limit. No approval is needed."}</div></div>
+    <div class="row end"><button class="btn primary big" data-act="submitCount" ${miss.length ? "disabled" : ""}>Submit count</button></div>`; },
+
+  report: () => { const r = lastClosing;
+    return `<div class="head"><h1>Closing report saved · ${fmtDate(r.date)}</h1></div>
+    <div class="grid cols2e">
+      <div class="card tablewrap"><table><tr><th>Sales today</th><td class="r num">${money(r.salesTotal)}</td></tr><tr><th>Transactions</th><td class="r num">${r.transactions}</td></tr>
+        <tr><th>Write-offs</th><td class="r num">${money(r.writeOffTotal)} <span class="pill ${r.isPendingApproval() ? "warn" : "good"}">${esc(r.approval)}</span></td></tr>
+        <tr><th>Stock differences</th><td class="r">${r.differences.length ? r.differences.map(d => `${esc(d.name)} ${d.diff > 0 ? "+" : ""}${d.diff} (${esc(d.reason)})`).join("; ") : "None"}</td></tr>
+        <tr><th>Saved</th><td class="r">${outbox.online ? "On this terminal and on the central server" : "On this terminal; will sync when online"}</td></tr></table></div>
+      <div class="card stack"><h2>Suggested order for tomorrow</h2><span class="small muted">Average daily sales minus the stock that can be sold tomorrow.</span>
+        <table>${r.suggested.map(s => `<tr><td>${esc(s.name)}</td><td class="r num">${s.qty}</td></tr>`).join("")}</table></div>
+    </div><div class="row end"><button class="btn" data-act="logout">Log out</button><button class="btn primary big" data-act="go" data-to="menu">Overview</button></div>`; },
+
+  dash: () => {
+    const low = branch.getLowStockItems(); const wo = lastClosing ? lastClosing.writeOffTotal : 0;
+    const due = openOrders().length;
+    return `<div class="head"><h1>Reports and stock</h1><span class="muted small">Today, ${fmtDate(new Date())}</span></div>
+    <div class="grid kpi"><div class="card"><span class="small muted">Sales today</span><b class="num">${money(salesReport.total())}</b></div>
+      <div class="card"><span class="small muted">Transactions</span><b class="num">${salesReport.count()}</b></div>
+      <div class="card"><span class="small muted">Open custom orders</span><b class="num">${due}</b></div>
+      <div class="card"><span class="small muted">Write-offs at last closing</span><b class="num">${lastClosing ? money(wo) : "Not closed yet"}</b></div></div>
+    <div class="grid cols2e">
+      <div class="card stack"><h2>Sales by hour (UZS)</h2>${salesChart()}</div>
+      <div class="card stack"><h2>Low stock and sold-out products</h2>
+        ${low.length ? `<div class="tablewrap"><table><tr><th>Product</th><th class="r">Left</th><th>Sold out at</th></tr>${low.map(i => `<tr><td>${esc(i.product.name)}</td><td class="r num">${i.quantity}</td><td>${i.soldOutAt ? fmtTime(i.soldOutAt) : "–"}</td></tr>`).join("")}</table></div>` : `<div class="muted">All products are above their threshold.</div>`}
+        ${lastReplenishment ? `<div class="note good">Last request ${lastReplenishment.requestNo} sent at ${fmtTime(lastReplenishment.sentAt)}.</div>` : ""}
+        <div class="row end"><button class="btn primary big" data-act="startReplen">Request replenishment</button></div></div>
+    </div>`; },
+
+  replen: () => `<div class="head"><h1>Replenishment request</h1></div>
+    <div class="card tablewrap"><table><tr><th>Product</th><th class="r">Avg. daily sales</th><th class="r">In stock</th><th class="r">Suggested</th><th>Order quantity</th></tr>
+      ${S.rr.lines.map((l, i) => `<tr><td>${esc(l.item.product.name)}</td><td class="r num">${l.item.product.avgDailySales}</td><td class="r num">${l.item.quantity}</td><td class="r num">${l.suggested}</td>
+        <td><input id="rr${i}" type="number" min="0" step="1" value="${l.qty}" data-rr="${i}" style="width:90px" aria-label="Order quantity ${esc(l.item.product.name)}"></td></tr>`).join("")}</table></div>
+    <div class="grid cols2e"><label class="f">Deliver by<input id="rrDate" type="date" data-bind="rr.deliverBy" value="${esc(S.rr.deliverBy)}"></label><label class="f">Note to production<input id="rrNote" type="text" data-bind="rr.note" value="${esc(S.rr.note)}"></label></div>
+    <div class="row between"><button class="btn" data-act="go" data-to="dash">‹ Back</button><button class="btn primary big" data-act="sendReplen">Send to production</button></div>`
+};
+
+const DIALOGS = {
+  declined: () => `<div class="dialog" role="alertdialog" aria-label="Payment declined"><h1>Payment declined</h1><p style="margin:0">The bank declined the card. The sale is <b>not</b> saved and branch stock is unchanged.</p>
+    <div class="row end"><button class="btn" data-act="cancelSale">Cancel sale</button><button class="btn primary" data-act="closeDialog">Try another method</button></div></div>`,
+  alt: () => `<div class="dialog" role="alertdialog" aria-label="Date not available"><h1>Date not available</h1><p style="margin:0">Production is full for ${fmtDate(fromIso(S.of.date))}. Offer the customer another collection date. No order has been saved.</p>
+    ${S.alts.map(a => `<button class="btn" data-act="useAlt" data-d="${a}">${fmtDate(fromIso(a))} at ${esc(S.of.time)}</button>`).join("")}
+    <div class="row end"><button class="btn" data-act="closeDialog">Change details</button></div></div>`,
+  held: () => `<div class="dialog" role="alertdialog" aria-label="Deposit not paid"><h1>Deposit not paid</h1><p style="margin:0">The payment was declined. The order is saved with status <b>Awaiting deposit</b> and the production slot is held until 23:59 today. No order number or SMS is issued yet.</p>
+    <div class="row end"><button class="btn" data-act="go" data-to="register">Finish later</button><button class="btn primary" data-act="closeDialog">Retry payment</button></div></div>`,
+  refused: () => `<div class="dialog" role="alertdialog" aria-label="Order cannot be handed over"><h1>Order cannot be handed over</h1><p style="margin:0">${esc(S.dialog.reason)}</p>
+    <div class="row end"><button class="btn primary" data-act="closeDialog">‹ Back to order list</button></div></div>`,
+  approve: () => `<div class="dialog neutral" role="dialog" aria-label="Manager approval"><h1>Manager approval needed</h1><p style="margin:0">Write-offs of <b class="num">${money(S.count.writeOffTotal())}</b> are above the branch limit of ${money(branch.writeOffLimit)}. The branch manager enters a PIN to approve.</p>
+    <label class="f">Branch manager PIN<input id="mgrPin" type="password" inputmode="numeric" maxlength="4" data-bind="pin" value="${esc(S.pin)}" autocomplete="off"></label>
+    ${S.pinErr ? `<div class="note bad">${esc(S.pinErr)}</div>` : ""}<div class="demo">Demo: the manager PIN for every branch is 4321.</div>
+    <div class="row end"><button class="btn" data-act="closeDialog">Reject – recount</button><button class="btn" data-act="pendingCount">Manager not available</button><button class="btn primary" data-act="approveCount">Approve</button></div></div>`
+};
+
+function render() {
+  const app = document.getElementById("app");
+  const foot = `<div class="small muted" style="margin-top:8px">Coursework prototype with invented demo data. Not an official Safia system.</div>`;
+  app.innerHTML = (S.user ? `<div class="shell">${sidebar()}<div class="main">${topbar()}<main class="wrap">${V[S.screen]()}${foot}</main></div></div>` : V.login())
+    + (S.dialog ? `<div class="overlay">${DIALOGS[S.dialog.type]()}</div>` : "")
+    + (S.drawer ? (() => { const l = L("msg"); const q = qOf("msg");
+        const found = outbox.messages.filter(m => !q || (m.text + " " + m.to).toLowerCase().includes(q));
+        const rows = found.filter(m => l.f === "All" || m.channel === l.f || (l.f === "Queued" && m.status === "Queued"));
+        const pg = pager("msg", rows.length, 6, outbox.messages.length ? "" : "No messages yet. They appear here when an order, alert or handover is sent.");
+        return `<aside class="drawer" aria-label="Messages"><div class="row between"><h2>Outgoing messages</h2><button class="btn sm" data-act="drawer">Close</button></div>
+        <span class="small muted">SMS to customers, alerts to the manager, notices to delivery platforms and requests to production. While offline they are queued.</span>
+        ${searchBox("msg", "Search messages")}
+        ${chips("msg", [["All", found.length], ...["SMS", "Alert", "Production", "Yandex", "Safia app"].map(ch => [ch, found.filter(m => m.channel === ch).length]).filter(x => x[1]), ["Queued", found.filter(m => m.status === "Queued").length]])}
+        ${rows.slice(pg.from, pg.to).map(m => `<div class="msg"><div class="row between"><b>${esc(m.channel)} → ${esc(m.to)}</b><span class="pill ${m.status === "Sent" ? "good" : "warn"}">${m.status}</span></div><div>${esc(m.text)}</div><div class="muted">${fmtTime(m.at)}</div></div>`).join("")}
+        ${pg.html}</aside>`; })() : "")
+    + (S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : "");
+}
+
+/* ---------- actions ---------- */
+const setPath = (path, val) => { const ks = path.split("."); let o = S; while (ks.length > 1) o = o[ks.shift()]; o[ks[0]] = val; };
+function buildOrder() {
+  const f = S.of; const [hh, mm] = f.time.split(":").map(Number); const at = fromIso(f.date); at.setHours(hh || 10, mm || 0, 0, 0);
+  let c = customers.find(x => x.matchesPhone(f.phone));
+  if (!c) c = new Customer(customers.length + 1, f.name.trim(), f.phone.trim()); else c.name = f.name.trim() || c.name;
+  const design = new CakeDesign(f.cakeType, Number(f.sizeKg), f.filling, f.inscription.trim(), f.notes.trim(), f.photo);
+  return new CustomOrder(c, design, at, schedule.slotFor(f.date), policy, S.user);
+}
+function makePayment(method, amount, cash) {
+  if (method === "cash") return new CashPayment(amount, cash ?? amount);
+  if (method === "card") return new CardPayment(amount, terminal);
+  return new QrPayment(amount, "Payment app");
+}
+const A = {
+  go: d => go(d.to),
+  quickLogin: d => { S.user = branch.employees.find(e => e.employeeId === Number(d.id)); S.loginErr = ""; S.fails = 0; go("menu"); },
+  pickBranch: d => { selectBranch(d.id); S.lists.branch = undefined; S.loginErr = ""; S.fails = 0; S.lid = ""; S.lpin = ""; render(); },
+  listFilter: d => { const l = L(d.list); l.f = d.f; l.page = 1; render(); },
+  listPage: d => { L(d.list).page = Number(d.p); render(); },
+  listClear: d => { const l = L(d.list); l.q = ""; l.page = 1; render(); const el = document.getElementById("q_" + d.list); if (el) el.focus(); },
+  listFlag: d => { const l = L(d.list); l.flag = !l.flag; l.page = 1; render(); },
+  pickDelivery: d => { S.dlvNo = d.no; render(); document.getElementById("dlvNo").focus(); },
+  logout: () => { S.lists = {}; S.user = null; S.screen = "login"; S.loginErr = ""; S.drawer = false; render(); },
+  drawer: () => { S.drawer = !S.drawer; render(); },
+  closeDialog: () => { S.dialog = null; S.pinErr = ""; render(); },
+  toggleOnline: () => { outbox.online = !outbox.online; if (outbox.online) { const n = outbox.flush(); toast(n ? `Back online. ${n} queued message(s) sent.` : "Back online."); } else toast("Offline mode. The branch keeps trading; messages are queued."); },
+  newSale: () => { S.sale = S.user.startSale(branch); S.lists.sale = undefined; S.payErr = ""; S.cash = ""; S.payMethod = "cash"; go("sale"); },
+  addProduct: d => { const p = branch.stock.find(s => s.product.productId === Number(d.id)).product; try { S.sale.addLine(p, 1); render(); } catch (e) { toast(e.message); } },
+  qty: d => { const l = S.sale.lines[Number(d.i)]; if (Number(d.d) > 0) { try { S.sale.addLine(l.product, 1); } catch (e) { return toast(e.message); } } else if (l.quantity > 1) l.changeQuantity(l.quantity - 1); else S.sale.removeLine(l); render(); },
+  clearSale: () => { S.sale.lines = []; render(); },
+  toPay: () => { S.payErr = ""; S.cash = ""; go("pay"); },
+  payMethod: d => { S.payMethod = d.m; S.payErr = ""; render(); },
+  confirmPay: () => {
+    const total = S.sale.calculateTotal();
+    if (S.payMethod === "cash" && (Number(S.cash) || 0) < total) { S.payErr = "Cash received is less than the amount due. Enter the amount the customer handed over."; return render(); }
+    const pay = makePayment(S.payMethod, total, Number(S.cash));
+    if (!S.sale.complete(pay)) { S.dialog = { type: "declined" }; return render(); }
+    salesReport.record(S.sale); S.lastSale = S.sale; S.alerts = [];
+    S.sale.lines.forEach(l => { const it = branch.stockFor(l.product); if (it.isLow() || it.isSoldOut()) { notifier.sendLowStockAlert(it); S.alerts.push(it.isSoldOut() ? `${it.product.name} is now sold out.` : `Low stock: ${it.product.name}, ${it.quantity} left.`); } });
+    go("receipt");
+  },
+  cancelSale: () => { S.sale = S.user.startSale(branch); go("sale"); },
+  newOrder: () => { S.of = newOrderForm(); S.order = null; go("order1"); },
+  findCustomer: () => { const c = customers.find(x => x.matchesPhone(S.of.phone)); if (c) { S.of.name = c.name; S.of.found = `Found: ${c.name} (${c.getOrderHistory().length} earlier order(s))`; } else S.of.found = "No customer with this phone. A new customer record will be created."; render(); },
+  checkAvail: () => {
+    const f = S.of; f.err = "";
+    if (f.phone.replace(/\D/g, "").length < 9) f.err = "Enter the customer's phone number (at least 9 digits).";
+    else if (!f.name.trim()) f.err = "Enter the customer's name.";
+    else if (!f.date) f.err = "Choose a collection date.";
+    else if (fromIso(f.date) < policy.earliestDate(today())) f.err = `Date too early. The earliest possible date is ${fmtDate(policy.earliestDate(today()))}.`;
+    if (f.err) return render();
+    const o = buildOrder();
+    if (!o.checkAvailability()) { S.alts = o.slot.suggestAlternatives(3); S.dialog = { type: "alt" }; return render(); }
+    S.order = o; S.depMethod = "card"; go("order2");
+  },
+  useAlt: d => { S.of.date = d.d; S.order = buildOrder(); S.depMethod = "card"; go("order2"); },
+  depMethod: d => { S.depMethod = d.m; render(); },
+  discardOrder: () => { const o = S.order; if (o.status === OrderStatus.AWAITING_DEPOSIT) { o.cancel(); toast("Order cancelled and production slot released."); go("register"); } else { S.order = null; toast("Draft discarded. No order was saved."); go("menu"); } },
+  takeDeposit: () => {
+    const o = S.order; const wasHeld = o.status === OrderStatus.AWAITING_DEPOSIT;
+    let ok; try { ok = o.confirm(makePayment(S.depMethod, o.getDepositDue())); } catch (e) { return toast(e.message); }
+    if (!wasHeld) { o.branchId = branch.branchId; orders.unshift(o); if (!customers.includes(o.customer)) customers.push(o.customer); o.customer.orders.push(o); }
+    if (!ok) { S.dialog = { type: "held" }; return render(); }
+    notifier.sendOrderConfirmation(o); outbox.post("Production", "Production team", `New order ${o.orderNo}: ${o.design.cakeType} ${o.design.sizeKg} kg for ${fmtDate(o.collectionAt)} ${fmtTime(o.collectionAt)}.`);
+    go("order3");
+  },
+  resumeOrder: d => { S.order = orders[Number(d.i)]; S.depMethod = "card"; go("order2"); },
+  advance: d => { const o = orders[Number(d.i)]; const nx = STATUS_FLOW[STATUS_FLOW.indexOf(o.status) + 1]; try { o.updateStatus(nx); } catch (e) { return toast(e.message); } if (nx === OrderStatus.READY) { notifier.sendOrderReady(o); toast(`${o.orderNo} is ready. SMS ${outbox.online ? "sent" : "queued"} to the customer.`); } else render(); },
+  collectOrder: d => { const o = orders[Number(d.i)]; const bal = o.getBalanceDue(); o.collect(new CashPayment(bal, bal)); toast(`${o.orderNo} collected. Balance of ${money(bal)} received.`); },
+  cancelOrder: d => { const o = orders[Number(d.i)]; o.cancel(); toast("Order cancelled and production slot released. A refund needs customer support approval."); },
+  handOver: () => { const o = S.dlv; o.handOver(); platforms[o.source].notifyPickup(o); go("handed"); },
+  startCount: () => { S.count = new StockCount(branch); S.pin = ""; S.pinErr = ""; go("closing"); },
+  submitCount: () => { const c = S.count; if (c.missingReasons().length) return; if (c.needsApproval()) { S.pin = ""; S.pinErr = ""; S.dialog = { type: "approve" }; return render(); } finishCount("Within limit"); },
+  approveCount: () => { const manager = branch.employees.find(e => e.canApproveWriteOff()); if (!manager.approveWriteOff(S.pin)) { S.pinErr = "Wrong PIN. Ask the branch manager to enter it again."; S.pin = ""; return render(); } finishCount(`Approved by ${branch.employees.find(e => e.canApproveWriteOff()).fullName}`); },
+  pendingCount: () => { outbox.post("Alert", "Branch manager", `Closing write-offs of ${money(S.count.writeOffTotal())} are waiting for your approval.`); finishCount("Pending approval"); },
+  startReplen: () => { S.rr = { deliverBy: iso(addDays(today(), 1)), note: "", lines: branch.stock.map(s => { const sug = Math.max(0, s.product.avgDailySales - s.quantity); return { item: s, suggested: sug, qty: sug }; }).filter(l => l.suggested > 0) }; go("replen"); },
+  sendReplen: () => { const lines = S.rr.lines.filter(l => l.qty > 0); if (!lines.length) return toast("Enter at least one order quantity.");
+    lastReplenishment = new ReplenishmentRequest(lines, S.rr.deliverBy, S.rr.note, S.user);
+    outbox.post("Production", "Production team", `${lastReplenishment.requestNo} for ${fmtDate(fromIso(S.rr.deliverBy))}: ${lines.map(l => `${l.item.product.name} x${l.qty}`).join(", ")}.`);
+    S.screen = "dash"; toast(`Request ${lastReplenishment.requestNo} (${lastReplenishment.totalUnits()} units) ${outbox.online ? "sent" : "queued"} to the production team.`); }
+};
+function finishCount(approval) { lastClosing = S.count.submit(approval, salesReport); S.count = null; go("report"); }
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b || b.disabled) return;
+  const fn = A[b.dataset.act]; if (fn) { e.preventDefault(); fn(b.dataset); }
+});
+document.addEventListener("input", e => { const t = e.target;
+  if (t.dataset.list) { const l = L(t.dataset.list); l.q = t.value; l.page = 1; const pos = t.selectionStart; render();
+    const el = document.getElementById(t.id); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (err) {} } return; }
+  if (t.dataset.bind) setPath(t.dataset.bind, t.type === "checkbox" ? t.checked : t.value);
+  if ("bindTerm" in t.dataset) terminal.declineNext = t.checked;
+});
+document.addEventListener("change", e => { const t = e.target; const d = t.dataset;
+  if (d.sort !== undefined) { const l = L(d.sort); l.sort = t.value; l.page = 1; render(); const el = document.getElementById(t.id); if (el) el.focus(); }
+  else if (d.tick !== undefined) { S.ticks[Number(d.tick)] = t.checked; render(); }
+  else if (d.count !== undefined) { S.count.lines[Number(d.count)].counted = Math.max(0, Math.floor(Number(t.value) || 0)); render(); }
+  else if (d.sell !== undefined) { const l = S.count.lines[Number(d.sell)]; l.sellTomorrow = t.value === "1"; if (!S.count.needsReason(l)) l.reason = ""; render(); }
+  else if (d.reason !== undefined) { S.count.lines[Number(d.reason)].reason = t.value; render(); }
+  else if (d.rr !== undefined) { S.rr.lines[Number(d.rr)].qty = Math.max(0, Math.floor(Number(t.value) || 0)); }
+  else if ("rerender" in d) { render(); const el = document.getElementById(t.id); if (el && t.type !== "checkbox") el.focus(); }
+});
+document.addEventListener("submit", e => { e.preventDefault(); const id = e.target.id;
+  if (id === "loginForm") { const sid = Number(S.lid); const pin = S.lpin;
+    const emp = branch.employees.find(x => x.employeeId === sid);
+    if (S.lockUntil > Date.now()) return;
+    if (!emp || !emp.login(pin)) { S.fails++;
+      if (S.fails >= 3) { S.fails = 0; S.lockUntil = Date.now() + 30000; S.loginErr = "Three wrong attempts. Login is locked for 30 seconds."; setTimeout(() => { if (!S.user) { S.loginErr = ""; render(); } }, 30000); }
+      else S.loginErr = `Wrong staff ID or PIN for ${branch.name}. ${3 - S.fails} attempt(s) left before the login is locked.`;
+      S.lpin = ""; render(); document.getElementById("staffPin").focus(); return; }
+    S.user = emp; S.loginErr = ""; S.fails = 0; S.lid = ""; S.lpin = ""; go("menu"); }
+  if (id === "scanForm") { const l = L("sale"); const v = l.q.trim(); const hit = branch.stock.find(s => s.product.matchesBarcode(v));
+    if (hit) { l.q = ""; try { S.sale.addLine(hit.product, 1); } catch (err) { return toast(err.message); } }
+    render(); document.getElementById("q_sale").focus(); }
+  if (id === "dlvForm") { const r = new HandoverVerifier(deliveryOrders, branch).verify(S.dlvNo);
+    if (!r.ok) { S.dialog = { type: "refused", reason: r.reason }; return render(); }
+    S.dlv = r.order; S.ticks = r.order.items.map(() => false); S.dlvNo = ""; go("check"); }
+});
+render();
+</script>
+</body>
+</html>
