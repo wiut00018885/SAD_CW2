@@ -1,7 +1,7 @@
 # Safia Branch Management System – high-fidelity prototype
 
 Coursework 2 (individual), 6BUIS026C Systems Analysis and Design, Westminster International University in Tashkent.
-Student ID: **[YOUR STUDENT ID]**
+Student ID: 00018885
 
 This repository holds the executable high-fidelity prototype described in section 1.2 of the report.
 
